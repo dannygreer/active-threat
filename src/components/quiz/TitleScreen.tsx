@@ -13,8 +13,11 @@ export default function TitleScreen({ onContinue }: TitleScreenProps) {
   const canContinue = firstName.trim() !== '' && lastName.trim() !== '';
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6">
-      <div className="w-full max-w-md space-y-8">
+    <div
+      className="flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/bg-hero.jpg')" }}
+    >
+      <div className="w-full max-w-md space-y-8 bg-white rounded-xl p-8 shadow-lg">
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold text-zinc-900">Active Threat Response</h1>
           <p className="text-zinc-600 text-lg">Training Assessment</p>
