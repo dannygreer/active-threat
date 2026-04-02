@@ -33,21 +33,23 @@ export default function AnswerScreen({ question, onAnswer }: AnswerScreenProps) 
   const overlayClass = OVERLAY_CLASSES[question.id];
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
-      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
-    >
+    <div className="relative flex flex-col items-center justify-center flex-1 px-6">
+      {bgImage && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale"
+          style={{ backgroundImage: `url('${bgImage}')` }}
+        />
+      )}
       {bgImage && <div className={`absolute inset-0 ${overlayClass}`} />}
-      <div className="relative">
-        <Stopwatch />
-      </div>
-
       <div className="relative w-full max-w-2xl space-y-8">
         <div className="text-center">
           <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${bgImage ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
             Question {question.id} of 3
           </span>
-          <h2 className={`text-2xl font-bold ${bgImage ? 'text-white' : 'text-zinc-900'}`}>{question.prompt}</h2>
+        </div>
+
+        <div className="flex justify-center">
+          <Stopwatch />
         </div>
 
         <div className="space-y-3">

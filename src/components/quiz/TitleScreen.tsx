@@ -13,11 +13,12 @@ export default function TitleScreen({ onContinue }: TitleScreenProps) {
   const canContinue = firstName.trim() !== '' && lastName.trim() !== '';
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/bg-hero.jpg')" }}
-    >
-      <div className="absolute inset-0 bg-black/60" />
+    <div className="relative flex flex-col items-center justify-center flex-1 px-6">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale"
+        style={{ backgroundImage: "url('/bg-hero.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-white/60" />
       <div className="relative w-full max-w-md space-y-8 bg-white rounded-xl p-8 shadow-lg">
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold text-zinc-900">Active Threat Response</h1>
@@ -26,9 +27,7 @@ export default function TitleScreen({ onContinue }: TitleScreenProps) {
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700 mb-1">
-              First Name
-            </label>
+            <label htmlFor="firstName" className="sr-only">First Name</label>
             <input
               id="firstName"
               type="text"
@@ -40,9 +39,7 @@ export default function TitleScreen({ onContinue }: TitleScreenProps) {
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-zinc-700 mb-1">
-              Last Name
-            </label>
+            <label htmlFor="lastName" className="sr-only">Last Name</label>
             <input
               id="lastName"
               type="text"

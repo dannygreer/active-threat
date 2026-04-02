@@ -18,7 +18,7 @@ export default function Stopwatch() {
   const tenths = Math.floor((elapsed % 1000) / 100);
 
   return (
-    <div className="fixed top-4 right-4 bg-zinc-900 text-white px-4 py-2 rounded-lg font-mono text-lg tabular-nums shadow-lg">
+    <div className="text-6xl font-mono font-bold tabular-nums text-white drop-shadow-lg mb-6">
       {seconds}.{tenths}s
     </div>
   );
