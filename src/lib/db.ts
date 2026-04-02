@@ -1,56 +1,10 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
-let db: Database.Database | null = null;
-
-function getDb(): Database.Database {
-  if (db) return db;
-
-  const dbPath = path.join(process.cwd(), 'data', 'quiz.db');
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS quiz_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      first_name TEXT NOT NULL,
-      last_name TEXT NOT NULL,
-      answer_1 INTEGER NOT NULL,
-      answer_2 INTEGER NOT NULL,
-      answer_3 INTEGER NOT NULL,
-      time_1_ms INTEGER NOT NULL,
-      time_2_ms INTEGER NOT NULL,
-      time_3_ms INTEGER NOT NULL,
-      total_time_ms INTEGER NOT NULL,
-      completed_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  return db;
-}
-
-export function insertResult(data: {
-  firstName: string;
-  lastName: string;
-  answers: number[];
-  times: number[];
-}) {
-  const totalTime = data.times.reduce((sum, t) => sum + t, 0);
-  const stmt = getDb().prepare(`
-    INSERT INTO quiz_results (first_name, last_name, answer_1, answer_2, answer_3, time_1_ms, time_2_ms, time_3_ms, total_time_ms)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(
-    data.firstName,
-    data.lastName,
-    data.answers[0],
-    data.answers[1],
-    data.answers[2],
-    data.times[0],
-    data.times[1],
-    data.times[2],
-    totalTime
-  );
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+  return createClient(url, key);
 }
 
 export interface QuizResultRow {
@@ -67,15 +21,42 @@ export interface QuizResultRow {
   completed_at: string;
 }
 
-export function getAllResults(): QuizResultRow[] {
-  return getDb()
-    .prepare('SELECT * FROM quiz_results ORDER BY completed_at DESC')
-    .all() as QuizResultRow[];
+export async function insertResult(data: {
+  firstName: string;
+  lastName: string;
+  answers: number[];
+  times: number[];
+}) {
+  const totalTime = data.times.reduce((sum, t) => sum + t, 0);
+  const { error } = await getClient().from('quiz_results').insert({
+    first_name: data.firstName,
+    last_name: data.lastName,
+    answer_1: data.answers[0],
+    answer_2: data.answers[1],
+    answer_3: data.answers[2],
+    time_1_ms: data.times[0],
+    time_2_ms: data.times[1],
+    time_3_ms: data.times[2],
+    total_time_ms: totalTime,
+  });
+  if (error) throw new Error(error.message);
 }
 
-export function getAverageTime(): number | null {
-  const row = getDb()
-    .prepare('SELECT AVG(total_time_ms) as avg_time FROM quiz_results')
-    .get() as { avg_time: number | null } | undefined;
-  return row?.avg_time ?? null;
+export async function getAllResults(): Promise<QuizResultRow[]> {
+  const { data, error } = await getClient()
+    .from('quiz_results')
+    .select('*')
+    .order('completed_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data as QuizResultRow[];
+}
+
+export async function getAverageTime(): Promise<number | null> {
+  const { data, error } = await getClient()
+    .from('quiz_results')
+    .select('total_time_ms');
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return null;
+  const sum = data.reduce((acc, row) => acc + row.total_time_ms, 0);
+  return sum / data.length;
 }

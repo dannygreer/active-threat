@@ -15,5 +15,5 @@ export async function submitQuizResult(data: {
     throw new Error('Must have 3 answers and 3 times');
   }
 
-  insertResult(data);
+  await insertResult(data);
 }

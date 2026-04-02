@@ -8,7 +8,7 @@ export async function GET() {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const results = getAllResults();
+  const results = await getAllResults();
 
   const headers = [
     'First Name',

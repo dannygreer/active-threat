@@ -4,9 +4,9 @@ import { adminLogout } from '@/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminDashboard() {
-  const results = getAllResults();
-  const avgTime = getAverageTime();
+export default async function AdminDashboard() {
+  const results = await getAllResults();
+  const avgTime = await getAverageTime();
 
   return (
     <div className="min-h-screen bg-zinc-50">
