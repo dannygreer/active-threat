@@ -1,6 +1,8 @@
 'use server';
 
-import { insertResult } from '@/lib/db';
+import { insertResult, deleteResult } from '@/lib/db';
+import { verifySession } from '@/lib/session';
+import { revalidatePath } from 'next/cache';
 
 export async function submitQuizResult(data: {
   firstName: string;
@@ -16,4 +18,11 @@ export async function submitQuizResult(data: {
   }
 
   await insertResult(data);
+}
+
+export async function deleteQuizResult(id: number): Promise<void> {
+  const isAdmin = await verifySession();
+  if (!isAdmin) throw new Error('Unauthorized');
+  await deleteResult(id);
+  revalidatePath('/active-threat/admin');
 }
