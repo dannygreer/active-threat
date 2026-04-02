@@ -17,7 +17,7 @@ export default function TitleScreen({ onContinue }: TitleScreenProps) {
       className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/bg-hero.jpg')" }}
     >
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/60" />
       <div className="relative w-full max-w-md space-y-8 bg-white rounded-xl p-8 shadow-lg">
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold text-zinc-900">Active Threat Response</h1>

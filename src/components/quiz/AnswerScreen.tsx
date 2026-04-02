@@ -4,6 +4,14 @@ import { useEffect, useRef } from 'react';
 import type { Question } from '@/types';
 import Stopwatch from './Stopwatch';
 
+const BG_IMAGES: Record<number, string> = {
+  1: '/bg-q1.jpg',
+};
+
+const OVERLAY_CLASSES: Record<number, string> = {
+  1: 'bg-red-900/60',
+};
+
 interface AnswerScreenProps {
   question: Question;
   onAnswer: (answerIndex: number, timeMs: number) => void;
@@ -21,16 +29,25 @@ export default function AnswerScreen({ question, onAnswer }: AnswerScreenProps) 
     onAnswer(index, elapsed);
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6">
-      <Stopwatch />
+  const bgImage = BG_IMAGES[question.id];
+  const overlayClass = OVERLAY_CLASSES[question.id];
 
-      <div className="w-full max-w-2xl space-y-8">
+  return (
+    <div
+      className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
+      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
+    >
+      {bgImage && <div className={`absolute inset-0 ${overlayClass}`} />}
+      <div className="relative">
+        <Stopwatch />
+      </div>
+
+      <div className="relative w-full max-w-2xl space-y-8">
         <div className="text-center">
-          <span className="inline-block px-3 py-1 bg-zinc-100 text-zinc-600 rounded-full text-sm font-medium mb-4">
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${bgImage ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
             Question {question.id} of 3
           </span>
-          <h2 className="text-2xl font-bold text-zinc-900">{question.prompt}</h2>
+          <h2 className={`text-2xl font-bold ${bgImage ? 'text-white' : 'text-zinc-900'}`}>{question.prompt}</h2>
         </div>
 
         <div className="space-y-3">

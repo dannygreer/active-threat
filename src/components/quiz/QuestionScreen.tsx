@@ -2,15 +2,30 @@
 
 import type { Question } from '@/types';
 
+const BG_IMAGES: Record<number, string> = {
+  1: '/bg-q1.jpg',
+};
+
+const OVERLAY_CLASSES: Record<number, string> = {
+  1: 'bg-white/60',
+};
+
 interface QuestionScreenProps {
   question: Question;
   onContinue: () => void;
 }
 
 export default function QuestionScreen({ question, onContinue }: QuestionScreenProps) {
+  const bgImage = BG_IMAGES[question.id];
+  const overlayClass = OVERLAY_CLASSES[question.id];
+
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6">
-      <div className="w-full max-w-2xl space-y-8">
+    <div
+      className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
+      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
+    >
+      {bgImage && <div className={`absolute inset-0 ${overlayClass}`} />}
+      <div className="relative w-full max-w-2xl space-y-8">
         <div className="text-center">
           <span className="inline-block px-3 py-1 bg-zinc-100 text-zinc-600 rounded-full text-sm font-medium mb-4">
             Question {question.id} of 3
