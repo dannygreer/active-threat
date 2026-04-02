@@ -4,10 +4,14 @@ import type { Question } from '@/types';
 
 const BG_IMAGES: Record<number, string> = {
   1: '/bg-q1.jpg',
+  2: '/bg-q2.jpg',
+  3: '/bg-q3.jpg',
 };
 
 const OVERLAY_CLASSES: Record<number, string> = {
-  1: 'bg-white/60',
+  1: 'bg-black/60',
+  2: 'bg-black/60',
+  3: 'bg-black/60',
 };
 
 interface QuestionScreenProps {
@@ -30,25 +34,25 @@ export default function QuestionScreen({ question, onContinue }: QuestionScreenP
       {bgImage && <div className={`absolute inset-0 ${overlayClass}`} />}
       <div className="relative w-full max-w-2xl space-y-8">
         <div className="text-center">
-          <span className="inline-block px-3 py-1 bg-zinc-100 text-zinc-600 rounded-full text-sm font-medium mb-4">
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${bgImage ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'}`}>
             Question {question.id} of 3
           </span>
         </div>
 
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-8 space-y-4">
+        <div className="bg-white/90 border border-zinc-200 rounded-xl p-8 space-y-4">
           <h2 className="text-lg font-medium text-zinc-500 uppercase tracking-wide">Scenario</h2>
           <p className="text-xl text-zinc-900 leading-relaxed whitespace-pre-line">
             {question.scenario}
           </p>
         </div>
 
-        <p className="text-xl font-bold text-zinc-900">
+        <p className={`text-xl font-bold ${bgImage ? 'text-white' : 'text-zinc-900'}`}>
           {question.prompt}
         </p>
 
         <button
           onClick={onContinue}
-          className="w-full py-3 bg-zinc-900 text-white rounded-lg font-medium text-lg transition-colors hover:bg-zinc-800"
+          className={`w-full py-3 rounded-lg font-medium text-lg transition-colors ${bgImage ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}
         >
           Continue
         </button>

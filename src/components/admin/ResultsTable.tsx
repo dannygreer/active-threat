@@ -1,7 +1,9 @@
 'use client';
 
+import { useTransition } from 'react';
 import type { QuizResultRow } from '@/lib/db';
 import { getAnswerText } from '@/lib/questions';
+import { deleteQuizResult } from '@/actions/quiz';
 
 interface ResultsTableProps {
   results: QuizResultRow[];
@@ -9,6 +11,24 @@ interface ResultsTableProps {
 
 function formatTime(ms: number): string {
   return (ms / 1000).toFixed(1) + 's';
+}
+
+function DeleteButton({ id }: { id: number }) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <button
+      onClick={() => {
+        if (!confirm('Delete this result?')) return;
+        startTransition(() => deleteQuizResult(id));
+      }}
+      disabled={pending}
+      className="text-zinc-400 hover:text-red-600 transition-colors disabled:opacity-50"
+      title="Delete"
+    >
+      {pending ? '...' : '\u00D7'}
+    </button>
+  );
 }
 
 export default function ResultsTable({ results }: ResultsTableProps) {
@@ -34,6 +54,7 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <th className="py-3 px-4 font-medium text-zinc-500">Q3 Time</th>
             <th className="py-3 px-4 font-medium text-zinc-500">Total Time</th>
             <th className="py-3 px-4 font-medium text-zinc-500">Completed</th>
+            <th className="py-3 px-4"></th>
           </tr>
         </thead>
         <tbody>
@@ -59,6 +80,9 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                   minute: '2-digit',
                   hour12: true,
                 })}
+              </td>
+              <td className="py-3 px-4 text-center">
+                <DeleteButton id={r.id} />
               </td>
             </tr>
           ))}

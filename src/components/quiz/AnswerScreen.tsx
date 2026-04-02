@@ -6,10 +6,14 @@ import Stopwatch from './Stopwatch';
 
 const BG_IMAGES: Record<number, string> = {
   1: '/bg-q1.jpg',
+  2: '/bg-q2.jpg',
+  3: '/bg-q3.jpg',
 };
 
 const OVERLAY_CLASSES: Record<number, string> = {
   1: 'bg-red-900/60',
+  2: 'bg-red-900/60',
+  3: 'bg-red-900/60',
 };
 
 interface AnswerScreenProps {

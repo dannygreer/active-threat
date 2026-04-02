@@ -51,6 +51,14 @@ export async function getAllResults(): Promise<QuizResultRow[]> {
   return data as QuizResultRow[];
 }
 
+export async function deleteResult(id: number): Promise<void> {
+  const { error } = await getClient()
+    .from('quiz_results')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function getAverageTime(): Promise<number | null> {
   const { data, error } = await getClient()
     .from('quiz_results')
