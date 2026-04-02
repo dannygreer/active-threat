@@ -1,12 +1,20 @@
-import { getAllResults, getAverageTime } from '@/lib/db';
+import { getAllResults, getAverageTime, QuizResultRow } from '@/lib/db';
 import ResultsTable from '@/components/admin/ResultsTable';
 import { adminLogout } from '@/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
-  const results = await getAllResults();
-  const avgTime = await getAverageTime();
+  let results: QuizResultRow[] = [];
+  let avgTime: number | null = null;
+  let dbError: string | null = null;
+
+  try {
+    results = await getAllResults();
+    avgTime = await getAverageTime();
+  } catch (e) {
+    dbError = e instanceof Error ? e.message : 'Failed to load results';
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -36,6 +44,16 @@ export default async function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {dbError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <p className="text-sm font-medium text-red-800">Database error</p>
+            <p className="text-sm text-red-600 mt-1">{dbError}</p>
+            <p className="text-xs text-red-500 mt-2">
+              Make sure the <code>quiz_results</code> table exists in Supabase. Run the SQL in <code>supabase/setup.sql</code>.
+            </p>
+          </div>
+        )}
+
         {avgTime !== null && (
           <div className="bg-white border border-zinc-200 rounded-xl p-6">
             <p className="text-sm text-zinc-500 font-medium">Average Quiz Completion Time</p>
