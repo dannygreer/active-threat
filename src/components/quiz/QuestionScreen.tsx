@@ -20,10 +20,13 @@ export default function QuestionScreen({ question, onContinue }: QuestionScreenP
   const overlayClass = OVERLAY_CLASSES[question.id];
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-center flex-1 px-6 bg-cover bg-center bg-no-repeat"
-      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
-    >
+    <div className="relative flex flex-col items-center justify-center flex-1 px-6">
+      {bgImage && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale"
+          style={{ backgroundImage: `url('${bgImage}')` }}
+        />
+      )}
       {bgImage && <div className={`absolute inset-0 ${overlayClass}`} />}
       <div className="relative w-full max-w-2xl space-y-8">
         <div className="text-center">
@@ -38,6 +41,10 @@ export default function QuestionScreen({ question, onContinue }: QuestionScreenP
             {question.scenario}
           </p>
         </div>
+
+        <p className="text-xl font-bold text-zinc-900">
+          {question.prompt}
+        </p>
 
         <button
           onClick={onContinue}
