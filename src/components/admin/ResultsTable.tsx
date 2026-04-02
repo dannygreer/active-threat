@@ -49,7 +49,17 @@ export default function ResultsTable({ results }: ResultsTableProps) {
               <td className="py-3 px-4 text-zinc-700">{getAnswerText(2, r.answer_3)}</td>
               <td className="py-3 px-4 text-zinc-500 font-mono">{formatTime(r.time_3_ms)}</td>
               <td className="py-3 px-4 text-zinc-900 font-mono font-medium">{formatTime(r.total_time_ms)}</td>
-              <td className="py-3 px-4 text-zinc-500">{new Date(r.completed_at + 'Z').toLocaleString()}</td>
+              <td className="py-3 px-4 text-zinc-500">
+                {new Date(r.completed_at).toLocaleString('en-US', {
+                  timeZone: 'America/Chicago',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+              </td>
             </tr>
           ))}
         </tbody>
