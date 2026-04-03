@@ -14,6 +14,7 @@ export interface ScenarioScreen {
   id: string;
   dbId: string;
   text: string;
+  prompt: string;
   timerSeconds: number;
   sortOrder: number;
   options: ScenarioOption[];

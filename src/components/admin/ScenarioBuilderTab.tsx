@@ -10,6 +10,7 @@ import type {
 import {
   adminSetActiveScenario,
   adminUpdateScreenText,
+  adminUpdateScreenPrompt,
   adminUpdateScreenTimer,
   adminUpdateOptionText,
   adminUpdateOptionRoute,
@@ -185,6 +186,7 @@ function ScreenCard({
       {isExpanded && (
         <div className="border-t border-zinc-200 p-4 space-y-4 bg-zinc-50">
           <ScreenTextEditor screen={screen} />
+          <PromptEditor screen={screen} />
           <TimerEditor screen={screen} />
 
           <div className="space-y-2">
@@ -284,6 +286,71 @@ function ScreenTextEditor({ screen }: { screen: ScenarioScreen }) {
         <button
           onClick={() => {
             setText(screen.text);
+            setEditing(false);
+          }}
+          className="px-3 py-1 border border-zinc-300 rounded text-xs"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Prompt editor
+// ============================================================
+
+function PromptEditor({ screen }: { screen: ScenarioScreen }) {
+  const [editing, setEditing] = useState(false);
+  const [prompt, setPrompt] = useState(screen.prompt);
+  const [pending, startTransition] = useTransition();
+
+  const save = () => {
+    startTransition(async () => {
+      await adminUpdateScreenPrompt(screen.dbId, prompt);
+      setEditing(false);
+    });
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-zinc-700">
+          Prompt: {screen.prompt || <span className="text-zinc-400 italic">none</span>}
+        </span>
+        <button
+          onClick={() => setEditing(true)}
+          className="text-xs text-blue-600 hover:text-blue-700"
+        >
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-zinc-700 block mb-1">
+        Prompt (shown below scenario text)
+      </label>
+      <input
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="e.g. What is your immediate reaction?"
+        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={save}
+          disabled={pending}
+          className="px-3 py-1 bg-zinc-900 text-white rounded text-xs font-medium disabled:bg-zinc-400"
+        >
+          {pending ? 'Saving...' : 'Save'}
+        </button>
+        <button
+          onClick={() => {
+            setPrompt(screen.prompt);
             setEditing(false);
           }}
           className="px-3 py-1 border border-zinc-300 rounded text-xs"

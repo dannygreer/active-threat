@@ -5,6 +5,7 @@ import {
   setActiveScenario,
   updateScreenText,
   updateScreenTimer,
+  updateScreenPrompt,
   updateOptionText,
   updateOptionRoute,
   addScreen,
@@ -30,6 +31,12 @@ export async function adminSetActiveScenario(id: string) {
 export async function adminUpdateScreenText(screenDbId: string, text: string) {
   await requireAdmin();
   await updateScreenText(screenDbId, text);
+  revalidatePath('/active-threat/admin');
+}
+
+export async function adminUpdateScreenPrompt(screenDbId: string, prompt: string) {
+  await requireAdmin();
+  await updateScreenPrompt(screenDbId, prompt);
   revalidatePath('/active-threat/admin');
 }
 
