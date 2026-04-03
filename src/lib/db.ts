@@ -65,6 +65,7 @@ export async function getActiveScenario(): Promise<Scenario | null> {
       id: scr.screen_id as string,
       dbId: scr.id as string,
       text: scr.screen_text as string,
+      prompt: (scr.screen_prompt as string) ?? '',
       timerSeconds: scr.timer_seconds as number,
       sortOrder: scr.sort_order as number,
       options: scrOpts,
@@ -258,6 +259,17 @@ export async function updateOptionRoute(
     .from('screen_options')
     .update({ next_screen_id: nextScreenId })
     .eq('id', optionDbId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateScreenPrompt(
+  screenDbId: string,
+  prompt: string,
+): Promise<void> {
+  const { error } = await getClient()
+    .from('scenario_screens')
+    .update({ screen_prompt: prompt })
+    .eq('id', screenDbId);
   if (error) throw new Error(error.message);
 }
 

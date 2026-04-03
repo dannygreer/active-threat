@@ -41,6 +41,12 @@ export function ReadScreen({ screen, screenNumber, onContinue }: ReadScreenProps
           </p>
         </div>
 
+        {screen.prompt && (
+          <p className="text-xl font-bold text-white">
+            {screen.prompt}
+          </p>
+        )}
+
         <button
           onClick={onContinue}
           className="w-full py-3 rounded-lg font-medium text-lg transition-colors bg-white text-zinc-900 hover:bg-zinc-100"
