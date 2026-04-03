@@ -180,6 +180,20 @@ export async function upsertResponseTag(tag: {
   if (error) throw new Error(error.message);
 }
 
+export async function deleteResponseTag(
+  scenarioFk: string,
+  screenId: string,
+  optionLabel: string,
+): Promise<void> {
+  const { error } = await getClient()
+    .from('response_tags')
+    .delete()
+    .eq('scenario_fk', scenarioFk)
+    .eq('screen_id', screenId)
+    .eq('option_label', optionLabel);
+  if (error) throw new Error(error.message);
+}
+
 // ============================================================
 // SCENARIO MANAGEMENT (Admin)
 // ============================================================

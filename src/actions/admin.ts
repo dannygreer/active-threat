@@ -12,6 +12,7 @@ import {
   deleteScreen,
   deleteOption,
   upsertResponseTag,
+  deleteResponseTag,
 } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
@@ -99,5 +100,15 @@ export async function adminUpsertResponseTag(
     option_label: optionLabel,
     response_category: category,
   });
+  revalidatePath('/active-threat/admin');
+}
+
+export async function adminDeleteResponseTag(
+  scenarioFk: string,
+  screenId: string,
+  optionLabel: string,
+) {
+  await requireAdmin();
+  await deleteResponseTag(scenarioFk, screenId, optionLabel);
   revalidatePath('/active-threat/admin');
 }

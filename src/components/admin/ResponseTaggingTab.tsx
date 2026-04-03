@@ -7,7 +7,7 @@ import type {
   ResponseCategory,
   ScenarioOption,
 } from '@/types';
-import { adminUpsertResponseTag } from '@/actions/admin';
+import { adminUpsertResponseTag, adminDeleteResponseTag } from '@/actions/admin';
 
 const CATEGORIES: ResponseCategory[] = [
   'controlled',
@@ -106,10 +106,16 @@ function TagRow({
 }) {
   const [pending, startTransition] = useTransition();
 
-  const setCategory = (category: ResponseCategory) => {
-    startTransition(() =>
-      adminUpsertResponseTag(scenarioFk, screenId, option.label, category),
-    );
+  const handleClick = (category: ResponseCategory) => {
+    if (currentCategory === category) {
+      startTransition(() =>
+        adminDeleteResponseTag(scenarioFk, screenId, option.label),
+      );
+    } else {
+      startTransition(() =>
+        adminUpsertResponseTag(scenarioFk, screenId, option.label, category),
+      );
+    }
   };
 
   return (
@@ -122,7 +128,7 @@ function TagRow({
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
-            onClick={() => setCategory(cat)}
+            onClick={() => handleClick(cat)}
             disabled={pending}
             className={`px-2 py-1 rounded text-xs font-medium transition-all ${
               currentCategory === cat
