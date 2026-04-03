@@ -1,0 +1,620 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import type {
+  Scenario,
+  ScenarioScreen,
+  ScenarioOption,
+  ScenarioListItem,
+} from '@/types';
+import {
+  adminSetActiveScenario,
+  adminUpdateScreenText,
+  adminUpdateScreenTimer,
+  adminUpdateOptionText,
+  adminUpdateOptionRoute,
+  adminAddScreen,
+  adminAddOption,
+  adminDeleteScreen,
+  adminDeleteOption,
+} from '@/actions/admin';
+
+// ============================================================
+// Main tab component
+// ============================================================
+
+interface ScenarioBuilderTabProps {
+  scenario: Scenario | null;
+  scenarios: ScenarioListItem[];
+}
+
+export default function ScenarioBuilderTab({
+  scenario,
+  scenarios,
+}: ScenarioBuilderTabProps) {
+  const [expandedScreen, setExpandedScreen] = useState<string | null>(null);
+  const [showAddScreen, setShowAddScreen] = useState(false);
+
+  if (!scenario) {
+    return (
+      <div className="p-8 text-center text-zinc-500">
+        No scenario loaded. Run <code>supabase/seed.sql</code> to create one.
+      </div>
+    );
+  }
+
+  const screens = Object.values(scenario.screens).sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  );
+  const allScreenIds = screens.map((s) => s.id);
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Scenario info */}
+      <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-zinc-900">{scenario.title}</h3>
+            <p className="text-sm text-zinc-500">
+              ID: {scenario.scenarioId} | Version: {scenario.version} | Entry:{' '}
+              {scenario.entryScreenId}
+            </p>
+          </div>
+          {scenarios.length > 1 && (
+            <ScenarioSelector
+              scenarios={scenarios}
+              activeId={scenario.dbId}
+            />
+          )}
+        </div>
+        <p className="text-sm text-zinc-500 mt-1">
+          {screens.length} screens configured
+        </p>
+      </div>
+
+      {/* Screen list */}
+      <div className="space-y-3">
+        {screens.map((screen) => (
+          <ScreenCard
+            key={screen.dbId}
+            screen={screen}
+            isExpanded={expandedScreen === screen.dbId}
+            onToggle={() =>
+              setExpandedScreen(
+                expandedScreen === screen.dbId ? null : screen.dbId,
+              )
+            }
+            allScreenIds={allScreenIds}
+            scenarioFk={scenario.dbId}
+          />
+        ))}
+      </div>
+
+      {/* Add screen */}
+      {showAddScreen ? (
+        <AddScreenForm
+          scenarioFk={scenario.dbId}
+          nextSortOrder={screens.length + 1}
+          onDone={() => setShowAddScreen(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowAddScreen(true)}
+          className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-lg text-zinc-500 hover:border-zinc-400 hover:text-zinc-600 transition-colors"
+        >
+          + Add Screen
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Scenario selector
+// ============================================================
+
+function ScenarioSelector({
+  scenarios,
+  activeId,
+}: {
+  scenarios: ScenarioListItem[];
+  activeId: string;
+}) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <select
+      className="text-sm border border-zinc-300 rounded px-2 py-1 disabled:opacity-50"
+      value={activeId}
+      disabled={pending}
+      onChange={(e) =>
+        startTransition(() => adminSetActiveScenario(e.target.value))
+      }
+    >
+      {scenarios.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.scenario_id} ({s.version})
+          {s.is_active ? ' \u2713' : ''}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// ============================================================
+// Screen card (collapsible)
+// ============================================================
+
+function ScreenCard({
+  screen,
+  isExpanded,
+  onToggle,
+  allScreenIds,
+  scenarioFk,
+}: {
+  screen: ScenarioScreen;
+  isExpanded: boolean;
+  onToggle: () => void;
+  allScreenIds: string[];
+  scenarioFk: string;
+}) {
+  const [delPending, startDel] = useTransition();
+
+  return (
+    <div className="border border-zinc-200 rounded-lg overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50 text-left"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-mono text-sm font-medium text-zinc-900 shrink-0">
+            {screen.id}
+          </span>
+          <span className="text-sm text-zinc-500 truncate">
+            {screen.text.substring(0, 80)}...
+          </span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-xs text-zinc-400">{screen.timerSeconds}s</span>
+          <span className="text-zinc-400">{isExpanded ? '\u25BC' : '\u25B6'}</span>
+        </div>
+      </button>
+
+      {/* Expanded content */}
+      {isExpanded && (
+        <div className="border-t border-zinc-200 p-4 space-y-4 bg-zinc-50">
+          <ScreenTextEditor screen={screen} />
+          <TimerEditor screen={screen} />
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-zinc-700">Options</h4>
+            {screen.options.map((option) => (
+              <OptionEditor
+                key={option.id}
+                option={option}
+                allScreenIds={allScreenIds}
+              />
+            ))}
+            <AddOptionForm
+              screenFk={screen.dbId}
+              nextSortOrder={screen.options.length + 1}
+            />
+          </div>
+
+          <div className="pt-2 border-t border-zinc-200">
+            <button
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Delete screen "${screen.id}" and all its options?`,
+                  )
+                )
+                  return;
+                startDel(() => adminDeleteScreen(screen.dbId));
+              }}
+              disabled={delPending}
+              className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+            >
+              {delPending ? 'Deleting...' : 'Delete this screen'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Screen text editor
+// ============================================================
+
+function ScreenTextEditor({ screen }: { screen: ScenarioScreen }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(screen.text);
+  const [pending, startTransition] = useTransition();
+
+  const save = () => {
+    startTransition(async () => {
+      await adminUpdateScreenText(screen.dbId, text);
+      setEditing(false);
+    });
+  };
+
+  if (!editing) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm font-medium text-zinc-700">
+            Screen Text
+          </label>
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-blue-600 hover:text-blue-700"
+          >
+            Edit
+          </button>
+        </div>
+        <p className="text-sm text-zinc-600 whitespace-pre-line">
+          {screen.text}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-zinc-700 block mb-1">
+        Screen Text
+      </label>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={save}
+          disabled={pending}
+          className="px-3 py-1 bg-zinc-900 text-white rounded text-xs font-medium disabled:bg-zinc-400"
+        >
+          {pending ? 'Saving...' : 'Save'}
+        </button>
+        <button
+          onClick={() => {
+            setText(screen.text);
+            setEditing(false);
+          }}
+          className="px-3 py-1 border border-zinc-300 rounded text-xs"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Timer editor
+// ============================================================
+
+function TimerEditor({ screen }: { screen: ScenarioScreen }) {
+  const [editing, setEditing] = useState(false);
+  const [seconds, setSeconds] = useState(screen.timerSeconds);
+  const [pending, startTransition] = useTransition();
+
+  const save = () => {
+    startTransition(async () => {
+      await adminUpdateScreenTimer(screen.dbId, seconds);
+      setEditing(false);
+    });
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-zinc-700">
+          Timer: {screen.timerSeconds}s
+        </span>
+        <button
+          onClick={() => setEditing(true)}
+          className="text-xs text-blue-600 hover:text-blue-700"
+        >
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-zinc-700">Timer:</label>
+      <input
+        type="number"
+        value={seconds}
+        onChange={(e) => setSeconds(parseInt(e.target.value) || 0)}
+        min={1}
+        className="w-20 px-2 py-1 border border-zinc-300 rounded text-sm"
+      />
+      <span className="text-sm text-zinc-500">seconds</span>
+      <button
+        onClick={save}
+        disabled={pending}
+        className="px-3 py-1 bg-zinc-900 text-white rounded text-xs font-medium disabled:bg-zinc-400"
+      >
+        {pending ? '...' : 'Save'}
+      </button>
+      <button
+        onClick={() => {
+          setSeconds(screen.timerSeconds);
+          setEditing(false);
+        }}
+        className="text-xs text-zinc-500"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// Option editor
+// ============================================================
+
+function OptionEditor({
+  option,
+  allScreenIds,
+}: {
+  option: ScenarioOption;
+  allScreenIds: string[];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(option.text);
+  const [route, setRoute] = useState(option.nextScreenId ?? '');
+  const [pending, startTransition] = useTransition();
+  const [delPending, startDel] = useTransition();
+
+  const save = () => {
+    startTransition(async () => {
+      await adminUpdateOptionText(option.id, text);
+      await adminUpdateOptionRoute(option.id, route || null);
+      setEditing(false);
+    });
+  };
+
+  return (
+    <div className="flex items-start gap-2 bg-white rounded-lg p-3 border border-zinc-200">
+      <span className="font-mono font-medium text-zinc-500 mt-0.5">
+        {option.label}.
+      </span>
+      {editing ? (
+        <div className="flex-1 space-y-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full px-2 py-1 border border-zinc-300 rounded text-sm"
+          />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-zinc-500">Route to:</label>
+            <select
+              value={route}
+              onChange={(e) => setRoute(e.target.value)}
+              className="px-2 py-1 border border-zinc-300 rounded text-xs"
+            >
+              <option value="">(terminal — end scenario)</option>
+              {allScreenIds.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={save}
+              disabled={pending}
+              className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:bg-zinc-400"
+            >
+              {pending ? '...' : 'Save'}
+            </button>
+            <button
+              onClick={() => {
+                setText(option.text);
+                setRoute(option.nextScreenId ?? '');
+                setEditing(false);
+              }}
+              className="text-xs text-zinc-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (!confirm('Delete this option?')) return;
+                startDel(() => adminDeleteOption(option.id));
+              }}
+              disabled={delPending}
+              className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 ml-auto"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-between">
+          <span className="text-sm text-zinc-700">{option.text}</span>
+          <div className="flex items-center gap-2 shrink-0 ml-2">
+            {option.nextScreenId ? (
+              <span className="text-xs text-zinc-400 font-mono">
+                \u2192 {option.nextScreenId}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">(terminal)</span>
+            )}
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-blue-600 hover:text-blue-700"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Add screen form
+// ============================================================
+
+function AddScreenForm({
+  scenarioFk,
+  nextSortOrder,
+  onDone,
+}: {
+  scenarioFk: string;
+  nextSortOrder: number;
+  onDone: () => void;
+}) {
+  const [screenId, setScreenId] = useState('');
+  const [text, setText] = useState('');
+  const [timer, setTimer] = useState(30);
+  const [pending, startTransition] = useTransition();
+
+  const submit = () => {
+    if (!screenId || !text) return;
+    startTransition(async () => {
+      await adminAddScreen(scenarioFk, screenId, text, timer, nextSortOrder);
+      onDone();
+    });
+  };
+
+  return (
+    <div className="border border-zinc-200 rounded-lg p-4 space-y-3 bg-white">
+      <h4 className="text-sm font-medium text-zinc-700">Add New Screen</h4>
+      <input
+        placeholder="Screen ID (e.g., NEW_SCREEN_1)"
+        value={screenId}
+        onChange={(e) => setScreenId(e.target.value)}
+        className="w-full px-3 py-2 border border-zinc-300 rounded text-sm"
+      />
+      <textarea
+        placeholder="Screen text..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={3}
+        className="w-full px-3 py-2 border border-zinc-300 rounded text-sm"
+      />
+      <div className="flex items-center gap-2">
+        <label className="text-sm text-zinc-600">Timer:</label>
+        <input
+          type="number"
+          value={timer}
+          onChange={(e) => setTimer(parseInt(e.target.value) || 30)}
+          min={1}
+          className="w-20 px-2 py-1 border border-zinc-300 rounded text-sm"
+        />
+        <span className="text-sm text-zinc-500">seconds</span>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={submit}
+          disabled={pending || !screenId || !text}
+          className="px-4 py-2 bg-zinc-900 text-white rounded text-sm font-medium disabled:bg-zinc-300"
+        >
+          {pending ? 'Adding...' : 'Add Screen'}
+        </button>
+        <button
+          onClick={onDone}
+          className="px-4 py-2 border border-zinc-300 rounded text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Add option form
+// ============================================================
+
+function AddOptionForm({
+  screenFk,
+  nextSortOrder,
+}: {
+  screenFk: string;
+  nextSortOrder: number;
+}) {
+  const [show, setShow] = useState(false);
+  const [label, setLabel] = useState('');
+  const [text, setText] = useState('');
+  const [route, setRoute] = useState('');
+  const [pending, startTransition] = useTransition();
+
+  if (!show) {
+    return (
+      <button
+        onClick={() => setShow(true)}
+        className="text-xs text-blue-600 hover:text-blue-700"
+      >
+        + Add Option
+      </button>
+    );
+  }
+
+  const submit = () => {
+    if (!label || !text) return;
+    startTransition(async () => {
+      await adminAddOption(
+        screenFk,
+        label,
+        text,
+        route || null,
+        nextSortOrder,
+      );
+      setLabel('');
+      setText('');
+      setRoute('');
+      setShow(false);
+    });
+  };
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded p-3 space-y-2">
+      <div className="flex gap-2">
+        <input
+          placeholder="Label (A,B...)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="w-24 px-2 py-1 border border-zinc-300 rounded text-sm"
+        />
+        <input
+          placeholder="Option text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="flex-1 px-2 py-1 border border-zinc-300 rounded text-sm"
+        />
+      </div>
+      <input
+        placeholder="Route to screen ID (leave empty for terminal)"
+        value={route}
+        onChange={(e) => setRoute(e.target.value)}
+        className="w-full px-2 py-1 border border-zinc-300 rounded text-sm"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={submit}
+          disabled={pending || !label || !text}
+          className="px-3 py-1 bg-zinc-900 text-white rounded text-xs disabled:bg-zinc-300"
+        >
+          {pending ? '...' : 'Add'}
+        </button>
+        <button onClick={() => setShow(false)} className="text-xs text-zinc-500">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

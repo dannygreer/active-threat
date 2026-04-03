@@ -1,76 +1,154 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { QuizStep, QuizState } from '@/types';
-import { questions } from '@/lib/questions';
-import { submitQuizResult } from '@/actions/quiz';
+import type { Scenario, Phase, ScreenResponse } from '@/types';
+import { submitAssessment } from '@/actions/quiz';
 import TitleScreen from './TitleScreen';
-import QuestionScreen from './QuestionScreen';
-import AnswerScreen from './AnswerScreen';
+import ScenarioScreen from './ScenarioScreen';
 import ResultsScreen from './ResultsScreen';
 
-const STEP_ORDER: QuizStep[] = ['title', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'results'];
+type Step = 'title' | 'scenario' | 'results';
 
-export default function Quiz() {
-  const [step, setStep] = useState<QuizStep>('title');
-  const [state, setState] = useState<QuizState>({
-    firstName: '',
-    lastName: '',
-    answers: [],
-    times: [],
-  });
+interface QuizProps {
+  scenario: Scenario | null;
+}
 
-  const nextStep = useCallback(() => {
-    const currentIndex = STEP_ORDER.indexOf(step);
-    if (currentIndex < STEP_ORDER.length - 1) {
-      setStep(STEP_ORDER[currentIndex + 1]);
-    }
-  }, [step]);
+export default function Quiz({ scenario }: QuizProps) {
+  const [step, setStep] = useState<Step>('title');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phase, setPhase] = useState<Phase>('pre');
+  const [currentScreenId, setCurrentScreenId] = useState('');
+  const [branchPath, setBranchPath] = useState('');
+  const [responses, setResponses] = useState<ScreenResponse[]>([]);
+  const [screenIndex, setScreenIndex] = useState(0);
 
-  const handleTitle = useCallback((firstName: string, lastName: string) => {
-    setState((prev) => ({ ...prev, firstName, lastName }));
-    setStep('q1');
-  }, []);
+  if (!scenario) {
+    return (
+      <div className="flex items-center justify-center flex-1">
+        <p className="text-zinc-500 text-lg">
+          No active scenario configured. Please contact an administrator.
+        </p>
+      </div>
+    );
+  }
 
-  const handleAnswer = useCallback(
-    async (answerIndex: number, timeMs: number) => {
-      const newAnswers = [...state.answers, answerIndex];
-      const newTimes = [...state.times, timeMs];
-
-      setState((prev) => ({
-        ...prev,
-        answers: newAnswers,
-        times: newTimes,
-      }));
-
-      if (newAnswers.length === 3) {
-        await submitQuizResult({
-          firstName: state.firstName,
-          lastName: state.lastName,
-          answers: newAnswers,
-          times: newTimes,
-        });
-      }
-
-      nextStep();
+  const handleTitle = useCallback(
+    (fn: string, ln: string, p: Phase) => {
+      setFirstName(fn);
+      setLastName(ln);
+      setPhase(p);
+      setCurrentScreenId(scenario.entryScreenId);
+      setScreenIndex(0);
+      setBranchPath('');
+      setResponses([]);
+      setStep('scenario');
     },
-    [state, nextStep]
+    [scenario],
   );
 
-  const questionIndex = step === 'q1' || step === 'a1' ? 0 : step === 'q2' || step === 'a2' ? 1 : 2;
+  const handleResponse = useCallback(
+    async (
+      optionLabel: string | null,
+      rtMs: number,
+      timedOut: boolean,
+    ) => {
+      // Build branch path incrementally
+      const newPath = optionLabel
+        ? branchPath
+          ? `${branchPath}-${optionLabel}`
+          : optionLabel
+        : branchPath;
+
+      const currentScreen = scenario.screens[currentScreenId];
+      const selectedOption = optionLabel
+        ? currentScreen?.options.find((o) => o.label === optionLabel)
+        : null;
+
+      const response: ScreenResponse = {
+        screenId: currentScreenId,
+        optionLabel,
+        optionText: selectedOption?.text ?? null,
+        rtMs,
+        timedOut,
+        branchPath: newPath,
+      };
+
+      const newResponses = [...responses, response];
+      setResponses(newResponses);
+      setBranchPath(newPath);
+
+      // Determine next screen
+      let nextScreenId: string | null = null;
+      if (selectedOption) {
+        nextScreenId = selectedOption.nextScreenId;
+      } else {
+        // Timed out — follow first option's route as default path
+        nextScreenId = currentScreen?.options[0]?.nextScreenId ?? null;
+      }
+
+      if (nextScreenId && scenario.screens[nextScreenId]) {
+        setCurrentScreenId(nextScreenId);
+        setScreenIndex((prev) => prev + 1);
+      } else {
+        // Terminal screen — submit data and show results
+        const totalTime = newResponses.reduce((sum, r) => sum + r.rtMs, 0);
+        const participantId = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Date.now()}`;
+
+        try {
+          await submitAssessment({
+            participantId,
+            firstName,
+            lastName,
+            phase,
+            scenarioId: scenario.scenarioId,
+            scenarioVersion: scenario.version,
+            branchPath: newPath,
+            responses: newResponses,
+            totalTime,
+          });
+        } catch (e) {
+          console.error('Failed to submit assessment:', e);
+        }
+
+        setStep('results');
+      }
+    },
+    [
+      branchPath,
+      responses,
+      currentScreenId,
+      scenario,
+      firstName,
+      lastName,
+      phase,
+    ],
+  );
 
   switch (step) {
     case 'title':
       return <TitleScreen onContinue={handleTitle} />;
-    case 'q1':
-    case 'q2':
-    case 'q3':
-      return <QuestionScreen question={questions[questionIndex]} onContinue={nextStep} />;
-    case 'a1':
-    case 'a2':
-    case 'a3':
-      return <AnswerScreen question={questions[questionIndex]} onAnswer={handleAnswer} />;
+    case 'scenario': {
+      const screen = scenario.screens[currentScreenId];
+      if (!screen) {
+        return (
+          <div className="flex items-center justify-center flex-1">
+            <p className="text-zinc-500">
+              Error: Screen &quot;{currentScreenId}&quot; not found.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <ScenarioScreen
+          key={currentScreenId}
+          screen={screen}
+          screenNumber={screenIndex + 1}
+          onResponse={handleResponse}
+        />
+      );
+    }
     case 'results':
-      return <ResultsScreen state={state} />;
+      return <ResultsScreen firstName={firstName} responses={responses} />;
   }
 }
