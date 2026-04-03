@@ -4,10 +4,10 @@ import { useState, useCallback } from 'react';
 import type { Scenario, Phase, ScreenResponse } from '@/types';
 import { submitAssessment } from '@/actions/quiz';
 import TitleScreen from './TitleScreen';
-import ScenarioScreen from './ScenarioScreen';
+import { ReadScreen, AnswerScreen } from './ScenarioScreen';
 import ResultsScreen from './ResultsScreen';
 
-type Step = 'title' | 'scenario' | 'results';
+type Step = 'title' | 'reading' | 'answering' | 'results';
 
 interface QuizProps {
   scenario: Scenario | null;
@@ -42,10 +42,14 @@ export default function Quiz({ scenario }: QuizProps) {
       setScreenIndex(0);
       setBranchPath('');
       setResponses([]);
-      setStep('scenario');
+      setStep('reading');
     },
     [scenario],
   );
+
+  const handleContinueToAnswer = useCallback(() => {
+    setStep('answering');
+  }, []);
 
   const handleResponse = useCallback(
     async (
@@ -90,6 +94,7 @@ export default function Quiz({ scenario }: QuizProps) {
       if (nextScreenId && scenario.screens[nextScreenId]) {
         setCurrentScreenId(nextScreenId);
         setScreenIndex((prev) => prev + 1);
+        setStep('reading');
       } else {
         // Terminal screen — submit data and show results
         const totalTime = newResponses.reduce((sum, r) => sum + r.rtMs, 0);
@@ -125,11 +130,12 @@ export default function Quiz({ scenario }: QuizProps) {
     ],
   );
 
+  const screen = scenario.screens[currentScreenId];
+
   switch (step) {
     case 'title':
       return <TitleScreen onContinue={handleTitle} />;
-    case 'scenario': {
-      const screen = scenario.screens[currentScreenId];
+    case 'reading': {
       if (!screen) {
         return (
           <div className="flex items-center justify-center flex-1">
@@ -140,8 +146,27 @@ export default function Quiz({ scenario }: QuizProps) {
         );
       }
       return (
-        <ScenarioScreen
-          key={currentScreenId}
+        <ReadScreen
+          key={`read-${currentScreenId}`}
+          screen={screen}
+          screenNumber={screenIndex + 1}
+          onContinue={handleContinueToAnswer}
+        />
+      );
+    }
+    case 'answering': {
+      if (!screen) {
+        return (
+          <div className="flex items-center justify-center flex-1">
+            <p className="text-zinc-500">
+              Error: Screen &quot;{currentScreenId}&quot; not found.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <AnswerScreen
+          key={`answer-${currentScreenId}`}
           screen={screen}
           screenNumber={screenIndex + 1}
           onResponse={handleResponse}
