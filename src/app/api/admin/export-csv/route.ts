@@ -1,52 +1,129 @@
 import { verifySession } from '@/lib/session';
-import { getAllResults } from '@/lib/db';
-import { getAnswerText } from '@/lib/questions';
+import { getAllResponsesWide, getAllResponsesLong } from '@/lib/db';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const valid = await verifySession();
-  if (!valid) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  if (!valid) return new Response('Unauthorized', { status: 401 });
 
-  const results = await getAllResults();
+  const format = request.nextUrl.searchParams.get('format') || 'wide';
+
+  if (format === 'long') {
+    return exportLong();
+  }
+  return exportWide();
+}
+
+async function exportWide() {
+  const results = await getAllResponsesWide();
 
   const headers = [
+    'Participant ID',
     'First Name',
     'Last Name',
+    'Phase',
+    'Scenario ID',
+    'Scenario Version',
+    'Branch Path',
     'Q1 Answer',
-    'Q1 Time (s)',
+    'Q1 RT (s)',
     'Q2 Answer',
-    'Q2 Time (s)',
+    'Q2 RT (s)',
     'Q3 Answer',
-    'Q3 Time (s)',
+    'Q3 RT (s)',
+    'Q4 Answer',
+    'Q4 RT (s)',
+    'Q5 Answer',
+    'Q5 RT (s)',
+    'Q6 Answer',
+    'Q6 RT (s)',
     'Total Time (s)',
     'Completed At',
   ];
 
   const csvRows = [headers.join(',')];
-
   for (const r of results) {
-    const row = [
-      quote(r.first_name),
-      quote(r.last_name),
-      quote(getAnswerText(0, r.answer_1)),
-      (r.time_1_ms / 1000).toFixed(1),
-      quote(getAnswerText(1, r.answer_2)),
-      (r.time_2_ms / 1000).toFixed(1),
-      quote(getAnswerText(2, r.answer_3)),
-      (r.time_3_ms / 1000).toFixed(1),
-      (r.total_time_ms / 1000).toFixed(1),
-      r.completed_at,
-    ];
-    csvRows.push(row.join(','));
+    csvRows.push(
+      [
+        quote(r.participant_id),
+        quote(r.first_name),
+        quote(r.last_name),
+        r.phase,
+        quote(r.scenario_id),
+        r.scenario_version,
+        quote(r.branch_path),
+        r.q1_answer ?? '',
+        r.q1_rt != null ? (r.q1_rt / 1000).toFixed(1) : '',
+        r.q2_answer ?? '',
+        r.q2_rt != null ? (r.q2_rt / 1000).toFixed(1) : '',
+        r.q3_answer ?? '',
+        r.q3_rt != null ? (r.q3_rt / 1000).toFixed(1) : '',
+        r.q4_answer ?? '',
+        r.q4_rt != null ? (r.q4_rt / 1000).toFixed(1) : '',
+        r.q5_answer ?? '',
+        r.q5_rt != null ? (r.q5_rt / 1000).toFixed(1) : '',
+        r.q6_answer ?? '',
+        r.q6_rt != null ? (r.q6_rt / 1000).toFixed(1) : '',
+        (r.total_time / 1000).toFixed(1),
+        r.completed_at,
+      ].join(','),
+    );
   }
 
-  const csv = csvRows.join('\n');
-
-  return new Response(csv, {
+  return new Response(csvRows.join('\n'), {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': 'attachment; filename="quiz-results.csv"',
+      'Content-Disposition':
+        'attachment; filename="assessment-results-wide.csv"',
+    },
+  });
+}
+
+async function exportLong() {
+  const results = await getAllResponsesLong();
+
+  const headers = [
+    'Participant ID',
+    'First Name',
+    'Last Name',
+    'Phase',
+    'Scenario ID',
+    'Scenario Version',
+    'Question ID',
+    'Branch Path',
+    'Option Selected',
+    'Response Category',
+    'RT (s)',
+    'Timed Out',
+    'Timestamp',
+  ];
+
+  const csvRows = [headers.join(',')];
+  for (const r of results) {
+    csvRows.push(
+      [
+        quote(r.participant_id),
+        quote(r.first_name),
+        quote(r.last_name),
+        r.phase,
+        quote(r.scenario_id),
+        r.scenario_version,
+        r.question_id,
+        quote(r.branch_path),
+        r.option_selected ?? '',
+        r.response_category ?? '',
+        (r.rt_ms / 1000).toFixed(1),
+        r.timed_out ? 'true' : 'false',
+        r.timestamp,
+      ].join(','),
+    );
+  }
+
+  return new Response(csvRows.join('\n'), {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition':
+        'attachment; filename="assessment-results-long.csv"',
     },
   });
 }

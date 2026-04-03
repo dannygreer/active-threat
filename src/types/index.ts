@@ -1,19 +1,103 @@
-export type QuizStep = 'title' | 'q1' | 'a1' | 'q2' | 'a2' | 'q3' | 'a3' | 'results';
+// Phase selection
+export type Phase = 'pre' | 'post';
+export type ResponseCategory = 'controlled' | 'acceptable' | 'premature' | 'unsafe';
 
-export interface Question {
+// Scenario data types (loaded from DB)
+export interface ScenarioOption {
+  id: string;
+  label: string;
+  text: string;
+  nextScreenId: string | null;
+}
+
+export interface ScenarioScreen {
+  id: string;
+  dbId: string;
+  text: string;
+  timerSeconds: number;
+  sortOrder: number;
+  options: ScenarioOption[];
+}
+
+export interface Scenario {
+  dbId: string;
+  scenarioId: string;
+  version: string;
+  title: string;
+  entryScreenId: string;
+  screens: Record<string, ScenarioScreen>;
+}
+
+// Per-screen response captured during quiz
+export interface ScreenResponse {
+  screenId: string;
+  optionLabel: string | null;
+  optionText: string | null;
+  rtMs: number;
+  timedOut: boolean;
+  branchPath: string;
+}
+
+// DB row types
+export interface ResponseLongRow {
   id: number;
-  scenario: string;
-  prompt: string;
-  answers: string[];
+  participant_id: string;
+  first_name: string;
+  last_name: string;
+  phase: string;
+  scenario_id: string;
+  scenario_version: string;
+  question_id: string;
+  branch_path: string;
+  option_selected: string | null;
+  response_category: string | null;
+  rt_ms: number;
+  timed_out: boolean;
+  timestamp: string;
 }
 
-export interface QuizState {
-  firstName: string;
-  lastName: string;
-  answers: number[];
-  times: number[];
+export interface ResponseWideRow {
+  id: number;
+  participant_id: string;
+  first_name: string;
+  last_name: string;
+  phase: string;
+  scenario_id: string;
+  scenario_version: string;
+  branch_path: string;
+  q1_answer: string | null;
+  q1_rt: number | null;
+  q2_answer: string | null;
+  q2_rt: number | null;
+  q3_answer: string | null;
+  q3_rt: number | null;
+  q4_answer: string | null;
+  q4_rt: number | null;
+  q5_answer: string | null;
+  q5_rt: number | null;
+  q6_answer: string | null;
+  q6_rt: number | null;
+  total_time: number;
+  completed_at: string;
 }
 
+export interface ResponseTag {
+  id: string;
+  scenario_fk: string;
+  screen_id: string;
+  option_label: string;
+  response_category: ResponseCategory;
+}
+
+export interface ScenarioListItem {
+  id: string;
+  scenario_id: string;
+  version: string;
+  title: string;
+  is_active: boolean;
+}
+
+// Legacy — kept for existing quiz_results table
 export interface QuizResult {
   id: number;
   first_name: string;
