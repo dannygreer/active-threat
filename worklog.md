@@ -67,3 +67,11 @@ Append-only log of autonomous Claude Code sessions. Newest entries at the bottom
 - `0006_rls.sql`: real role-aware policies for all existing tables (replacing the `Service role full access` placeholders).
 - Cut `/mvs/admin` over to Supabase Auth: drop the legacy `admin-session` JWT gate from `src/proxy.ts`, delete `src/lib/session.ts` and `src/actions/auth.ts`, remove the `createSession()` call from `auth/callback`.
 - Tenant-leak audit via subagent.
+
+**Post-commit, end-to-end verification (same day):**
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` arrived in `.env.local`. Pushed to Vercel: URL in all 3 envs ✓; ANON_KEY in Production + Development ✓; Preview blocked by a `vercel env add ... preview --yes` CLI quirk (`git_branch_required` on the documented "all branches" form) — flagged to add via dashboard. Logged in `needs_human.md` #1.
+- Stripped surrounding double quotes from the local `NEXT_PUBLIC_SUPABASE_ANON_KEY` value (Vercel CLI warned; dotenv would strip but kept it clean).
+- Direct REST call to `/auth/v1/otp` returned 200 with the new key — Supabase auth wired correctly.
+- Promoted `dannygreer@gmail.com` to `super_admin` via SQL (auto-created `profiles` row from the trigger confirmed working: `role=student` default, then updated).
+- **End-to-end test:** form at `/auth/login` → magic link email → click → `/auth/callback?code=...` → super_admin role lookup → legacy JWT minted → landed on `/mvs/admin`. Works.
+- First implicit-flow link (from the REST smoke test) confused the flow because it landed at `/#access_token=...` instead of `?code=`. Documented for future ref: always go through the form, not the REST endpoint, so `@supabase/ssr`'s default PKCE flow is used.

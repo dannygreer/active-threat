@@ -6,12 +6,10 @@ This file is for blockers that require human action — credentials, account set
 
 ## Active blockers
 
-### 1. `NEXT_PUBLIC_SUPABASE_ANON_KEY` missing from `.env.local`
-- The current `.env.local` only has `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-- To wire up Supabase Auth (magic link) for students + org admins, the browser needs the anon key.
-- **Action:** Supabase dashboard → Settings → API → copy `anon` `public` key → add as `NEXT_PUBLIC_SUPABASE_ANON_KEY=...` to `.env.local`. Also add it to Vercel env vars (Production + Preview + Development).
-- **Also:** add `NEXT_PUBLIC_SUPABASE_URL` (same value as existing `SUPABASE_URL`) to Vercel env vars. Already mirrored locally on Day 1.
-- **Status:** unblocked when both NEXT_PUBLIC_* keys are in `.env.local` and Vercel env vars
+### 1. ~~`NEXT_PUBLIC_SUPABASE_ANON_KEY` missing from `.env.local` and Vercel~~ — RESOLVED 2026-05-08
+
+- Anon key added to `.env.local` (validated against Supabase /auth/v1/settings — 200 OK, email auth enabled).
+- Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` now set in all 3 envs (Production + Preview + Development). Preview added via dashboard after CLI quirk.
 
 ### 2. Supabase Auth — enable magic link
 - Supabase dashboard → Authentication → Providers → Email → enable "Confirm email" if you want it strict, or leave off for invite-only.
