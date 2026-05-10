@@ -330,3 +330,51 @@ Plus low-severity: `getOrg` in /org page uses service-role (bypasses RLS), but t
 - **TOCTOU race fix** in inviteOrgAdmin (subagent #7).
 - **Per-student detail expansion** in /org roster — currently shows all enrollments inline; could collapse and expand for orgs with many students. Day 10 polish.
 - **Org admin can see student names but not emails** — by design (no auth.users access). Reconsider when org_admin workflows need email contact (e.g., for a "remind this student" button).
+
+---
+
+## 2026-05-09 — Day 7: pre-assessment invite emails (scoped down)
+
+**Branch:** `feat/transactional-invites` (cut from `feat/org-admin-portal`).
+
+**Scope change from original Day 7 prompt.** The plan called for 4 email templates + Vercel Cron + automatic triggers. Talked through the actual workflow with Danny: students attend in-person training (org-mandated), so reminders are unnecessary; the doctor can hand out URLs at the session; the only real need is a pre-session invite so students can take the assessment in advance or have the URL handy when they arrive. **Final scope: ONE template, admin-triggered button on org detail page. No cron. No reminders. No auto-triggers.**
+
+**Shipped:**
+- `resend@6.12.3` SDK installed.
+- `RESEND_API_KEY` added to `.env.local` (reuses the same Resend Pro key that powers Supabase Auth's SMTP).
+- `src/lib/email.ts` — Resend client wrapper with cached singleton, `FROM_EMAIL` (`onboarding@resend.dev` while in sandbox).
+- `src/actions/invites.ts` — `sendPreInvites(prev, formData)` server action:
+  - Gated by `requireSuperAdmin()`.
+  - For each student in the org, finds incomplete `pre` enrollments. One email per student listing all their `/take/[secret_token]` URLs.
+  - Skips students whose pre enrollments all have `invited_email_sent_at` set, unless `resendAll=true`.
+  - Stamps `invited_email_sent_at` after each successful Resend send.
+  - Returns per-row results: sent / skipped_already_sent / no_pending_enrollments / no_email / error.
+- `src/components/admin/SendPreInvitesPanel.tsx` — UI on `/mvs/admin/orgs/[id]`. Shows pending count, "Re-send to all" checkbox, send button, per-row result table.
+
+**Subagent caught one real bug, fixed pre-commit:**
+- HTML injection in `renderInviteHtml` — `firstName`, `orgName`, assessment label all interpolated unescaped. Low practical exploit (admin-controlled), but a malicious org name like `<img src=x onerror=...>` would render in some clients. Added `escapeHtml()` and applied to all user-controlled interpolations.
+
+Plus dead code cleanup: removed the `alreadySentCount` prop that was always 0.
+
+**Live verification:**
+- Triggered via the UI for Day 3 Test Org. Found 0 pending (all enrollments completed from prior days).
+- Reset one enrollment to incomplete via SQL → triggered again → 1 pending → Resend rejected with the exact expected sandbox error: "You can only send testing emails to your own email address (dannygreer@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains". Surfaced cleanly to the admin in the result table.
+- Restored the test enrollment to completed.
+
+**This proves the entire pipeline works end-to-end through Resend.** Domain verification (already in `needs_human.md` #4) is the only thing standing between us and real cohort sends.
+
+**Lower-severity findings deferred to backlog:**
+- HTML email niceties: missing `<!DOCTYPE>`/`<html>`/`<meta charset>` wrapper, no preheader text, hardcoded subject. Future polish.
+- `getBaseUrl` trusts `host` header when `APP_URL` env unset — set `APP_URL` in Vercel before prod sends.
+- Sequential N email sends, ~50s for 100 students. `Promise.allSettled` chunks would parallelize. Not needed at v1 scale.
+- Two concurrent admin clicks both pass the filter, both send. Acceptable.
+
+**Day 8 plan (per `MVS_Project_Plan.md`):**
+- Marketing landing page at `/`.
+- Wire `mentalvelocitysystem.com` to Vercel.
+- Move existing quiz title screen from `/` (currently the legacy anonymous flow) to a new route — though the token-URL pivot from Day 5b means the legacy flow is deprecated; we may just delete `/`'s current contents entirely.
+- Contact form posting to a `leads` table.
+
+**Open items for next session:**
+- **Resend domain verification** is now the literal blocker for v1 cohort go-live. Without it, no real student can be emailed.
+- 5 unmerged branches (Days 2-7). Coordinate merge to main soon.

@@ -7,6 +7,7 @@ import { updateOrg } from '@/actions/orgs';
 import OrgForm from '@/components/admin/OrgForm';
 import EnrollmentLinks from '@/components/admin/EnrollmentLinks';
 import InviteOrgAdminForm from '@/components/admin/InviteOrgAdminForm';
+import SendPreInvitesPanel from '@/components/admin/SendPreInvitesPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,13 @@ export default async function OrgDetailPage({
   const orgAdmins = await getOrgAdmins(id);
   const baseUrl = await getBaseUrl();
   const updateAction = updateOrg.bind(null, id);
+
+  // Count of students with at least one incomplete 'pre' enrollment.
+  // The action re-checks invited_email_sent_at at send time; this count
+  // is just for the panel header.
+  const pendingStudentCount = roster.filter((m) =>
+    m.enrollments.some((e) => e.phase === 'pre' && !e.completed_at)
+  ).length;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -68,6 +76,16 @@ export default async function OrgDetailPage({
             action={updateAction}
             initial={org}
             submitLabel="Save changes"
+          />
+        </section>
+
+        <section className="bg-white border border-zinc-200 rounded-xl p-6">
+          <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide mb-3">
+            Pre-assessment invites
+          </h2>
+          <SendPreInvitesPanel
+            orgId={id}
+            pendingStudentCount={pendingStudentCount}
           />
         </section>
 
