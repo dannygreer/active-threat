@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import RadarBackdrop from '@/components/marketing/RadarBackdrop';
 
 // Magic-link sign-in for ADMINS only (super_admin, org_admin).
 // Students don't sign in — they receive a /take/[token] URL from their
@@ -48,20 +47,16 @@ export default function LoginPage() {
         className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_30%,#0e1422_0%,#050810_60%,#000_100%)] pointer-events-none"
         aria-hidden="true"
       />
-      <RadarBackdrop className="absolute right-[-25%] top-1/2 -translate-y-1/2 w-[1100px] h-[1100px] opacity-60 pointer-events-none" />
-
-      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 py-5 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
+      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 pt-[30px] pb-5 flex items-center justify-between">
+        <Link href="/" className="flex items-center group">
           <Image
-            src="/mvs-icon.png"
-            alt="MVS"
-            width={28}
-            height={28}
-            className="rounded"
+            src="/mvs-logo.png"
+            alt="MVS — Mental Velocity System"
+            width={329}
+            height={32}
+            priority
+            className="h-8 w-auto group-hover:opacity-90 transition-opacity"
           />
-          <span className="text-sm font-medium tracking-wider text-zinc-300 group-hover:text-zinc-100 transition-colors">
-            MVS
-          </span>
         </Link>
         <Link
           href="/"
@@ -190,7 +185,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mvs-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500 text-center mt-6">
-            STUDENTS — your facilitator will send you a take link
+            STUDENTS — your facilitator will send you a link
           </p>
         </div>
       </main>

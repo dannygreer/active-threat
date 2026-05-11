@@ -14,7 +14,7 @@ const NAV: { label: string; href: string }[] = [
 // /decision-analytics, /contact.
 export default function SiteHeader() {
   return (
-    <header className="relative z-20 max-w-7xl mx-auto w-full px-6 sm:px-10 py-5 flex items-center justify-between">
+    <header className="relative z-20 max-w-7xl mx-auto w-full px-6 sm:px-10 pt-[30px] pb-5 flex items-center justify-between">
       <Link href="/" className="flex items-center group">
         <Image
           src="/mvs-logo.png"

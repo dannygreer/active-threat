@@ -7,10 +7,6 @@ export default function SiteFooter() {
           <span className="text-zinc-500">
             © {new Date().getFullYear()} Mental Velocity System
           </span>
-          <span className="hidden sm:inline text-zinc-700">|</span>
-          <span className="hidden sm:inline text-zinc-500 uppercase tracking-widest">
-            v1.0
-          </span>
         </div>
         <div className="flex items-center gap-4 uppercase tracking-widest">
           <span className="flex items-center gap-1.5 text-emerald-400/80">
