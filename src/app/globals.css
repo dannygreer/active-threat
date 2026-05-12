@@ -49,6 +49,26 @@ h3.mvs-display {
   animation: hud-blink 2.2s ease-in-out infinite;
 }
 
+/* Nav-link glitch: brief chromatic-aberration burst on hover. Same family
+   as `hud-glitch` (the long-cycle YOUR MISSION effect) but ~15× faster and
+   one-shot per hover. The color shift to blue is handled by Tailwind's
+   `hover:text-...` utility on the link itself; this keyframe only adds the
+   shake + R/C separation. */
+@keyframes hud-glitch-hover {
+  0%   { transform: translateX(0); text-shadow: none; }
+  20%  { transform: translateX(-2px); text-shadow: 2px 0 #ff0040, -2px 0 #00fff0; }
+  40%  { transform: translateX(2px); text-shadow: -2px 0 #ff0040, 2px 0 #00fff0; }
+  60%  { transform: translateX(-1px); text-shadow: 1px 0 #ff0040, -1px 0 #00fff0; }
+  80%  { transform: translateX(1px); }
+  100% { transform: none; text-shadow: none; }
+}
+.hud-glitch-hover {
+  display: inline-block;
+}
+.hud-glitch-hover:hover {
+  animation: hud-glitch-hover 0.4s steps(1, end);
+}
+
 @keyframes hud-glitch {
   0% { opacity: 0; transform: translateX(0); text-shadow: none; }
   1% { opacity: 0.4; transform: translateX(-3px); text-shadow: 3px 0 #ff0040, -3px 0 #00fff0; }

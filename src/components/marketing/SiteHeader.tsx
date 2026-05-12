@@ -31,7 +31,7 @@ export default function SiteHeader() {
           <Link
             key={item.href}
             href={item.href}
-            className="text-xs uppercase tracking-widest text-zinc-400 hover:text-[#4FA9F0] transition-colors"
+            className="hud-glitch-hover text-xs uppercase tracking-widest text-zinc-400 hover:text-[#4FA9F0] transition-colors"
           >
             {item.label}
           </Link>
