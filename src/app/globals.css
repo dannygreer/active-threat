@@ -21,8 +21,11 @@ body {
   font-family: var(--font-inter), sans-serif;
 }
 
+/* Headings inherit the body font (Plex Sans on mvs-body wrappers; Inter
+   on any legacy unscoped page). Marketing + admin display headings use
+   the .mvs-display class for Saira Condensed. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-poppins), sans-serif;
+  font-family: inherit;
 }
 
 /* Marketing-only typography overrides — opt-in via class so admin/portal

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  Poppins,
   Inter,
   Saira_Condensed,
   IBM_Plex_Sans,
@@ -8,13 +7,9 @@ import {
 } from "next/font/google";
 import "./globals.css";
 
-// Legacy fonts — kept loaded so existing admin/portal pages keep their
-// look until we sweep them onto the new marketing palette.
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+// Inter is kept as the body-text fallback only — Plex Sans is the
+// canonical body font (loaded below). Poppins removed 2026-05-12 once
+// every admin / portal page picked up mvs-display for headings.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -66,7 +61,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${inter.variable} ${sairaCondensed.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${sairaCondensed.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body
         className="min-h-full flex flex-col"

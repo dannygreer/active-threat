@@ -43,7 +43,6 @@ export default function DashboardClient({ snapshot }: Props) {
     activeThreatPairs,
     markers,
     certification,
-    operational,
   } = snapshot;
 
   return (
@@ -57,9 +56,6 @@ export default function DashboardClient({ snapshot }: Props) {
         markers={markers}
       />
       <SectionCertification certification={certification} />
-      <SectionOperational
-        operational={operational}
-      />
       <PrintDeckLink />
     </div>
   );
@@ -425,49 +421,6 @@ function SectionCertification({
             </ResponsiveContainer>
           )}
         </Card>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------
-// Section D — Operational Health
-// ---------------------------------------------------------------------
-function SectionOperational({
-  operational,
-}: {
-  operational: DashboardSnapshot['operational'];
-}) {
-  const latency = operational?.avg_invite_to_completion_hours ?? null;
-  const abandoned = operational?.abandoned_count ?? 0;
-  const invitedIncomplete = operational?.total_invited_incomplete ?? 0;
-  const abandonPct =
-    invitedIncomplete > 0
-      ? Math.round((100 * abandoned) / invitedIncomplete)
-      : 0;
-
-  return (
-    <section>
-      <SectionHeader label="Operational Health" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Tile
-          label="Avg invite → completion (hrs)"
-          value={latency != null ? latency : '—'}
-        />
-        <Tile
-          label="Abandonment rate"
-          value={
-            invitedIncomplete > 0 ? `${abandonPct}% (${abandoned})` : '—'
-          }
-        />
-        <Tile
-          label="Sentry errors (last 7d)"
-          value={
-            process.env.NEXT_PUBLIC_SENTRY_CONFIGURED === 'true'
-              ? '—'
-              : 'Configure Sentry'
-          }
-        />
       </div>
     </section>
   );

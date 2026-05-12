@@ -68,7 +68,7 @@ export default function AdminHeader({
               type="submit"
               className="px-4 py-2 border border-zinc-300 text-zinc-700 hover:bg-zinc-100 transition-colors"
             >
-              Logout
+              LOGOUT
             </button>
           </form>
         </div>
