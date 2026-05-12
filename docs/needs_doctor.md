@@ -24,7 +24,7 @@ Phase 1 Freeze (per `docs/phase1_freeze.md`) introduces 8 event markers per resp
 - For the 5 new scenarios: 80 options × 8 markers = 640 checkboxes (most false; only the doctrine-correct option per question typically fires markers — estimate 1 hour of focused work).
 - For active_threat_v1: ~24 options × 8 markers, same shape — admin can tag now.
 - **Until tagged:** `event_markers` JSONB on every event row defaults to `{}`. The analytics pipeline emits valid rows with empty marker sets; cohort dashboards just won't have marker-driven cuts until tagging is in.
-- **MC option markers:** UI not yet wired (server action exists, sibling tab in admin needed). Lower priority since MC has no revision flow and analytics queries can still operate on scenario-option markers.
+- **MC option markers:** admin UI shipped 2026-05-12 (Day 11). New "MC Markers" tab in /mvs/admin lists all 50 questions with the 8-checkbox grid per option. Tagging time estimate: ~50 questions × 4 options × 8 markers ≈ 1600 checkboxes; most stay empty (only doctrine-flagged options fire markers).
 - **Status:** [NEEDS_DOCTOR — admin UI + scenarios ready, please tag at https://mentalvelocitysystem.com/mvs/admin once DNS lands]
 - **Owner:** Dr. Scully
 

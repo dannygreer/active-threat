@@ -11,8 +11,14 @@ import { submitAssessment, submitAssessmentByToken } from '@/actions/quiz';
 import TitleScreen from './TitleScreen';
 import { ReadScreen, AnswerScreen, type AnswerEvent } from './ScenarioScreen';
 import ResultsScreen from './ResultsScreen';
+import ScenarioVideo from './ScenarioVideo';
 
-type Step = 'title' | 'reading' | 'answering' | 'results';
+// Day 11: scenarios with `videoUrl` open in the 'video' step. When the
+// video ends, the runner advances directly to 'answering' (skipping the
+// 'reading' step — the video already delivered the situation; the
+// `screen_text` would be redundant post-video). Text-only scenarios like
+// active_threat_v1 keep the original 'reading' → 'answering' flow.
+type Step = 'title' | 'video' | 'reading' | 'answering' | 'results';
 
 interface QuizProps {
   scenario: Scenario | null;
@@ -40,9 +46,16 @@ export default function Quiz({
   token,
 }: QuizProps) {
   const isEnrolled = !!enrollmentId || !!token;
-  const [step, setStep] = useState<Step>(
-    isEnrolled && scenario ? 'reading' : 'title'
-  );
+  // Initial step: video-led scenarios open in 'video'; everything else keeps
+  // the prior behavior (reading for enrolled flow, title for anonymous walk-in).
+  const initialStep: Step = scenario?.videoUrl
+    ? isEnrolled
+      ? 'video'
+      : 'title'
+    : isEnrolled
+      ? 'reading'
+      : 'title';
+  const [step, setStep] = useState<Step>(initialStep);
   const [firstName, setFirstName] = useState(prefillFirstName ?? '');
   const [lastName, setLastName] = useState(prefillLastName ?? '');
   const [phase, setPhase] = useState<Phase>(prefillPhase ?? 'pre');
@@ -78,12 +91,21 @@ export default function Quiz({
       setBranchPath('');
       setResponses([]);
       revisionCountRef.current = 0;
-      setStep('reading');
+      // Video-led scenarios go to 'video'; text-only go to 'reading'.
+      setStep(scenario.videoUrl ? 'video' : 'reading');
     },
     [scenario],
   );
 
   const handleContinueToAnswer = useCallback(() => {
+    setStep('answering');
+  }, []);
+
+  // Day 11: video ended → straight to 'answering' (skip 'reading').
+  // The AnswerScreen's startTimeRef anchors when AnswerScreen mounts, so
+  // Q1's RT correctly begins from the moment the question UI paints, NOT
+  // from page load.
+  const handleVideoEnded = useCallback(() => {
     setStep('answering');
   }, []);
 
@@ -211,6 +233,30 @@ export default function Quiz({
   switch (step) {
     case 'title':
       return <TitleScreen onContinue={handleTitle} />;
+    case 'video': {
+      if (!scenario.videoUrl || scenario.videoDurationSeconds == null) {
+        // Defensive: should never happen — initialStep guards this — but if
+        // a scenario somehow lands here without a video, fall through to
+        // the text-only reading path so the student isn't stuck.
+        return (
+          <ReadScreen
+            key={`read-${currentScreenId}`}
+            screen={screen!}
+            screenNumber={screenIndex + 1}
+            onContinue={handleContinueToAnswer}
+          />
+        );
+      }
+      return (
+        <div className="flex items-center justify-center flex-1 px-6 py-12 bg-black">
+          <ScenarioVideo
+            src={scenario.videoUrl}
+            durationSeconds={scenario.videoDurationSeconds}
+            onEnded={handleVideoEnded}
+          />
+        </div>
+      );
+    }
     case 'reading': {
       if (!screen) {
         return (

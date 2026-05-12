@@ -134,13 +134,19 @@ export async function adminUpdateScenarioMeta(
   revalidatePath('/mvs/admin');
 }
 
+// Marker-toggle actions intentionally do NOT call revalidatePath. With ~640
+// marker toggles per scenario (80 options × 8 markers) and ~1600 on the MC
+// bank, revalidating the entire /mvs/admin tree on every checkbox click is
+// prohibitively expensive — it re-runs every dashboard loader (responses,
+// long-format, scenario, list, MC questions, response tags). The client
+// editors keep optimistic local state via useState; the DB write is the
+// source of truth, and the admin page picks up the new values on next nav.
 export async function adminUpdateScreenOptionMarkers(
   optionDbId: string,
   markers: Record<string, boolean>,
 ) {
   await requireAdmin();
   await updateScreenOptionMarkers(optionDbId, markers);
-  revalidatePath('/mvs/admin');
 }
 
 export async function adminUpdateMcOptionMarkers(
@@ -149,5 +155,4 @@ export async function adminUpdateMcOptionMarkers(
 ) {
   await requireAdmin();
   await updateMcOptionMarkers(optionDbId, markers);
-  revalidatePath('/mvs/admin');
 }

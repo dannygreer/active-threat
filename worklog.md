@@ -502,3 +502,41 @@ Plus low-severity from agent: legacy `/quiz` is unreachable from `/` (intentiona
 - After he confirms marker values, the engine will start emitting non-empty `event_markers` on revisable-mode submissions, unblocking the doctrine analytics.
 
 **Next:** cohort go-live prep (Resend domain verification, DNS swap to mentalvelocitysystem.com, super_admin grant for the doctor's account, first-org seed).
+
+---
+
+## Day 11 — Video player + Day 10 cleanup (2026-05-12)
+
+**Branch:** `feat/video-player-and-cleanup` (off main).
+
+**Shipped:**
+- `supabase/migrations/0013_video_url.sql` — adds `video_url` + `video_duration_seconds` to `scenarios`, plus `video_url_requires_duration` check constraint enforcing pair-set semantics. Numbering bumped from prompt's "0010" (slot was already taken by `0010_enrollment_scores_view.sql`). Applied to prod via Supabase MCP.
+- `src/components/quiz/ScenarioVideo.tsx` — doctrine-compliant HTML5 player. No controls, no scrub, no replay. Defensive guards:
+  - High-water-mark `lastSafeTimeRef` ratchets forward only during natural playback; `onSeeking` snaps any rewind or jump back to that watermark.
+  - `tabIndex={-1}` and an `onKeyDown` blocklist (Space, arrows, Home/End, j/k/l, f) prevent keyboard scrub from even reaching the seek event.
+  - `onContextMenu` preventDefault'd so right-click can't reveal "show controls".
+  - `endedFiredRef` debounces `onEnded` to fire at most once per mount.
+  - "Begin" overlay surfaces only when autoplay is blocked (Safari iOS); hidden once `play()` resolves.
+- `src/types/index.ts` + `src/lib/db.ts` — Scenario surfaces `videoUrl` and `videoDurationSeconds`.
+- `src/components/quiz/Quiz.tsx` — new `'video'` step in the Step union. `initialStep` + `handleTitle` route video-led scenarios into video; `handleVideoEnded` advances directly to `'answering'` (skipping `'reading'` because the video replaces the situation text). Active-threat (no video) keeps the original `'reading' → 'answering'` flow unchanged.
+- `src/components/admin/McMarkersTab.tsx` + wiring in `AdminDashboard.tsx` + `app/mvs/admin/page.tsx` — new "MC Markers" tab. Lists the 50 MC questions with the same 8-checkbox marker grid the scenario builder shows for `screen_options`. Server action `adminUpdateMcOptionMarkers` already existed from Day 10; this is the missing UI.
+- `tests/video.spec.ts` (4 cases) — constraint enforcement on all 4 (url, duration) combinations.
+- `tests/video_e2e.spec.ts` (3 cases) — scenario loader surfaces video metadata; conversation_velocity_v1 wired with `/scenarios/test.mp4`; other revisable scenarios + active_threat still null.
+
+**Subagent review findings — addressed:**
+- MAJOR #1 (keyboard arrow scrub flashing a future frame before snap-back): added `tabIndex={-1}` to the `<video>` element + `onKeyDown` handler that swallows Space, arrow keys, Home/End, j/k/l/f. Prevents the seek event from ever firing instead of relying on snap-back.
+- MAJOR #2 (admin re-validation perf on every marker toggle): dropped `revalidatePath('/mvs/admin')` from `adminUpdateScreenOptionMarkers` + `adminUpdateMcOptionMarkers`. Per-checkbox click no longer re-runs every admin loader. Optimistic `useState` keeps the UI in sync; DB write remains source of truth.
+- MINOR (replay-window between onEnded and unmount): removed the `endedFiredRef` early-return inside `onSeeking` so the snap-back stays active after the video ends, closing the rogue-rewind window.
+- MINOR (stale-closure race on rapid marker toggles): switched both `ScenarioBuilderTab` and `McMarkersTab` to functional `setMarkers(prev => ...)`. Each toggle composes off the latest committed state.
+- MINOR (defense-in-depth comment on `loadMcQuestionsForAdmin`): added explicit doc note that it must only be imported from admin-gated routes.
+
+**Test results:** 57 vitest cases pass across 7 spec files (rls + invites + phase1_freeze + phase1_e2e + scenarios_v1_seed + video + video_e2e). `npm run build` green.
+
+**Day 10.5 verification:** confirmed complete pre-Day-11 — no remaining `getActiveScenario` references.
+
+**Test asset:** `/public/scenarios/test.mp4` (5.59s Synthesia render, 1920×1080, H.264/AAC, ~6MB) committed as the placeholder. `conversation_velocity_v1.video_url` set to `/scenarios/test.mp4` in prod. Real per-scenario MP4s will be swapped in via Supabase Storage URLs as they're produced.
+
+**Deferred:**
+- `presented_options` server-rederivation (Day 10 known gap; only matters once randomization ships).
+- Redundant `screen_text` on Q2/Q3/Q4 of video-led scenarios (seed authoring decision, not a code fix).
+- Vitest cleanup for `getWalkInScenario is stable even when another scenario is is_active=true` — currently writes via `try/finally`. If vitest gets killed mid-test, the prod `is_active` flag stays toggled. Recommend a `beforeAll` reset in a follow-up.

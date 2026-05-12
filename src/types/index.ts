@@ -66,6 +66,12 @@ export interface Scenario {
   commitmentMode: CommitmentMode;
   classification: ScenarioClassification;
   screens: Record<string, ScenarioScreen>;
+  // Day 11: when set, the runner shows the MP4 before Q1 and skips the
+  // 'reading' step (screen_text becomes redundant once the video delivered
+  // the situation). Both fields null on text-only scenarios like
+  // active_threat_v1.
+  videoUrl: string | null;
+  videoDurationSeconds: number | null;
 }
 
 // Snapshot of the options as displayed at decision time.
