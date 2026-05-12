@@ -578,3 +578,36 @@ Plus low-severity from agent: legacy `/quiz` is unreachable from `/` (intentiona
 - ✓ All RLS / existing tests still green.
 
 **Deferred:** backfill idempotency footgun (one-time migration; future schema-only re-runs are fine).
+
+---
+
+## Day 12 — Super-admin dashboard (2026-05-12)
+
+**Branch:** `feat/admin-dashboard` (off main).
+
+**Shipped:**
+- `supabase/migrations/0015_dashboard_views.sql` — 6 read-only views (`dashboard_volume`, `dashboard_completion_by_assessment`, `dashboard_active_threat_pairs`, `dashboard_marker_aggregates`, `dashboard_exam_certification`, `dashboard_operational`). All `security_invoker = true` so RLS pass-through holds. Applied to prod via Supabase MCP.
+  - Prompt SQL referenced a non-existent `sessions` table → substituted `enrollments`. Prompt SQL referenced `responses_long.sequence_number` → substituted earliest-timestamp subquery. `enrollment.id` is uuid (no `max()` agg) → split pre/post-pair view into two filtered CTEs that inner-join on `student_id`.
+- `src/lib/dashboard.ts` — typed loader for the 6 views via service-role client. Drops `student_id` + `enrollment_id` from the active_threat_pairs select so PII never crosses the wire.
+- `src/components/admin/DashboardClient.tsx` — 4 sections: Volume tiles + completion table, Effectiveness (path divergence stat + first-RT bar + 8-marker grouped bars with empty-state messaging), Certification (pass-rate stat + score histogram + tier pie), Operational (latency + abandon + Sentry placeholder).
+- `src/components/admin/AdminHeader.tsx` — shared chrome with tab nav (Dashboard / Responses / Scenarios / Tagging / Test Bank / Summary / Orgs / Leads) + Export dropdown + Logout. Used by `/mvs/admin` and the 5 new sub-routes.
+- Route restructure: legacy `/mvs/admin` tab host moved to dedicated routes:
+  - `/mvs/admin/responses` → ResponsesTab
+  - `/mvs/admin/scenarios` → ScenarioBuilderTab
+  - `/mvs/admin/tagging` → ResponseTaggingTab
+  - `/mvs/admin/test-bank` → McMarkersTab
+  - `/mvs/admin/summary` → SummaryTab
+- `/mvs/admin/pitch` + `PitchDeckClient.tsx` — strip-the-chrome 2×2 layout of the 4 effectiveness cards for screenshot or browser-print.
+- `recharts@^3.8.1` added (React 19 compatible).
+
+**Subagent review findings:**
+- MAJOR — marker view perf at cohort scale: the `cross join × 8 markers × N events` pattern can't use the partial expression indexes from migration 0012 (those are `where = 'true'` only; the denominator needs all rows). Acceptable today (190 events; ~750 projected first cohort) but worth rewriting as a single-pass aggregate with the 8 markers inlined before `responses_long` crosses ~10K rows. Added a perf NOTE comment to the migration file documenting the rewrite.
+- MINOR (fixed) — practice-phase enrollments aggregated by the view but never rendered by the client. Filtered to `phase in ('pre','post')` in the view; lighter payload, no client-side surprise.
+- MINOR (fixed) — `student_id` / `enrollment_id` UUIDs were typed onto the wire even though never rendered. Loader's `.select(...)` now explicitly drops them. PII stays at the per-org drill-down only.
+- MINOR (fixed) — "Completed sessions" tile renamed to "Completed enrollments" since the count is over enrollments regardless of kind.
+- MINOR (deferred) — recent activity feed (Section A in prompt) not implemented; tracked as v2 polish. The 4 tiles + completion table cover Audience-1 visibility.
+- OK on all 7 audit items (super_admin gating, RLS pass-through, marker semantics, empty-state, pitch deck strip, PII).
+
+**Test results:** 63 vitest cases pass across 8 spec files. `npm run build` green.
+
+**Doctor handoff:** dashboard live; marker reduction chart shows the dashed-border "Awaiting marker tagging" state because no `event_markers` are set yet. That's the visible payoff for needs_doctor.md §2b — every marker tagged unlocks a data point in the doctor's pitch chart.
