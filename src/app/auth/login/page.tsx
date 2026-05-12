@@ -57,6 +57,7 @@ function LoginInner() {
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     const token = code.replace(/\s/g, '').trim();
+    // Supabase email OTPs may be 6 or 8 digits depending on dashboard config.
     if (token.length < 6) return;
     setStatus('verifying');
     setErrorMessage(null);
@@ -150,7 +151,7 @@ function LoginInner() {
                       </p>
                       <p className="text-zinc-300 text-sm">
                         Check{' '}
-                        <span className="text-[#4FA9F0]">{email}</span> for a 6-digit code.
+                        <span className="text-[#4FA9F0]">{email}</span> for your sign-in code.
                       </p>
                     </div>
 
@@ -159,7 +160,7 @@ function LoginInner() {
                         htmlFor="code"
                         className="mvs-mono block text-[10px] uppercase tracking-[0.25em] text-zinc-400 mb-2"
                       >
-                        6-digit code
+                        Sign-in code
                       </label>
                       <input
                         id="code"
@@ -167,15 +168,15 @@ function LoginInner() {
                         inputMode="numeric"
                         autoComplete="one-time-code"
                         pattern="\d*"
-                        maxLength={6}
+                        maxLength={10}
                         required
                         autoFocus
                         value={code}
                         onChange={(e) =>
-                          setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                          setCode(e.target.value.replace(/\D/g, '').slice(0, 10))
                         }
                         disabled={status === 'verifying'}
-                        placeholder="••••••"
+                        placeholder="••••••••"
                         className="mvs-mono w-full px-4 py-3 bg-zinc-900/70 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#4FA9F0]/40 disabled:opacity-60 text-center text-2xl tracking-[0.4em]"
                         style={{ border: '1px solid rgba(1,111,212,0.30)' }}
                       />

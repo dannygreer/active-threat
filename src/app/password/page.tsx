@@ -65,13 +65,13 @@ export default async function PasswordGatePage({
         >
           <div>
             <p className="mvs-mono text-[10px] uppercase tracking-[0.3em] text-[#4FA9F0] mb-2">
-              Restricted access
+              Private preview
             </p>
             <h1 className="mvs-display text-3xl font-bold uppercase tracking-wide text-zinc-100">
-              Authorization required
+              Site password required
             </h1>
             <p className="mvs-mono text-[11px] uppercase tracking-widest text-zinc-400 mt-2">
-              Enter access code to continue
+              Enter the shared preview password
             </p>
           </div>
 
@@ -81,7 +81,7 @@ export default async function PasswordGatePage({
               htmlFor="password"
               className="mvs-mono block text-[10px] font-semibold text-[#4FA9F0] uppercase tracking-[0.25em] mb-2"
             >
-              Access Code
+              Site Password
             </label>
             <input
               id="password"
@@ -97,7 +97,7 @@ export default async function PasswordGatePage({
 
           {error && (
             <p className="mvs-mono text-xs uppercase tracking-widest text-red-400">
-              Invalid access code
+              Incorrect password
             </p>
           )}
 
@@ -110,11 +110,11 @@ export default async function PasswordGatePage({
               boxShadow: '0 0 24px rgba(1,111,212,0.20)',
             }}
           >
-            Authenticate ›
+            Enter ›
           </button>
 
           <p className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-500 text-center">
-            Access cookie valid 24 hours
+            This is not the admin login — preview password is shared with you separately
           </p>
         </div>
       </form>
