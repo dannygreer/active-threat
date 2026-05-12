@@ -30,7 +30,13 @@ async function requireAdmin() {
 export async function adminSetActiveScenario(id: string) {
   await requireAdmin();
   await setActiveScenario(id);
+  // Both dashboard (which surfaces active scenario in completion table) and
+  // the Scenarios page (which loads via getDefaultAdminScenario) need
+  // refreshing — otherwise the picker writes the new is_active flag to the
+  // DB but the route keeps serving its cached props.
   revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin/scenarios');
+  revalidatePath('/mvs/admin/tagging');
 }
 
 export async function adminUpdateScreenText(screenDbId: string, text: string) {
