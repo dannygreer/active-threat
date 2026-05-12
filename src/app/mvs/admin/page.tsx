@@ -5,6 +5,10 @@ import {
   getDefaultAdminScenario,
   getResponseTags,
   getAllScenarios,
+  listMcAssessments,
+  loadMcQuestionsForAdmin,
+  type McAdminAssessment,
+  type McAdminQuestion,
 } from '@/lib/db';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import { signOut } from '@/actions/session';
@@ -24,17 +28,28 @@ export default async function AdminDashboardPage() {
   let scenario: Scenario | null = null;
   let responseTags: ResponseTag[] = [];
   let scenarios: ScenarioListItem[] = [];
+  let mcAssessments: McAdminAssessment[] = [];
+  let mcQuestions: McAdminQuestion[] = [];
+  let activeMcAssessmentId: string | null = null;
   let dbError: string | null = null;
 
   try {
-    [responsesWide, responsesLong, scenario, scenarios] = await Promise.all([
-      getAllResponsesWide(),
-      getAllResponsesLong(),
-      getDefaultAdminScenario(),
-      getAllScenarios(),
-    ]);
+    [responsesWide, responsesLong, scenario, scenarios, mcAssessments] =
+      await Promise.all([
+        getAllResponsesWide(),
+        getAllResponsesLong(),
+        getDefaultAdminScenario(),
+        getAllScenarios(),
+        listMcAssessments(),
+      ]);
     if (scenario) {
       responseTags = await getResponseTags(scenario.dbId);
+    }
+    // For now load the first MC assessment's questions. If we end up with
+    // more than one MC bank, the McMarkersTab will need a selector.
+    if (mcAssessments.length > 0) {
+      activeMcAssessmentId = mcAssessments[0].id;
+      mcQuestions = await loadMcQuestionsForAdmin(activeMcAssessmentId);
     }
   } catch (e) {
     dbError = e instanceof Error ? e.message : 'Failed to load data';
@@ -105,6 +120,9 @@ export default async function AdminDashboardPage() {
           scenario={scenario}
           responseTags={responseTags}
           scenarios={scenarios}
+          mcAssessments={mcAssessments}
+          mcQuestions={mcQuestions}
+          activeMcAssessmentId={activeMcAssessmentId}
         />
       </main>
     </div>

@@ -105,6 +105,10 @@ async function loadScenarioFromRow(
         null,
     },
     screens: screenMap,
+    // Day 11 video fields. Both null on text-only scenarios.
+    videoUrl: (scenario.video_url as string | null) ?? null,
+    videoDurationSeconds:
+      (scenario.video_duration_seconds as number | null) ?? null,
   } as Scenario;
 }
 
@@ -181,6 +185,87 @@ export async function getScenarioByAssessmentId(
 // is the gate. tests/rls.spec.ts asserts this loader's projection.
 
 import type { McQuestion } from '@/types';
+
+// Day 11: admin-facing MC question loader. Unlike loadMcQuestionsForStudent
+// (which deliberately omits the answer key), this returns is_correct +
+// triggers_markers so the admin marker editor can render the 8-checkbox grid
+// per option and the answer key for context. Server-only; the result must
+// never be passed verbatim to a student client.
+//
+// Defense-in-depth note: the page route that calls this is already behind
+// requireSuperAdmin() (via proxy.ts and the /mvs/admin layout), so this
+// loader doesn't re-check. Do NOT import this from a non-admin route.
+export interface McAdminQuestion {
+  id: string;
+  sequence: number;
+  prompt: string;
+  options: {
+    id: string;
+    label: 'A' | 'B' | 'C' | 'D';
+    text: string;
+    isCorrect: boolean;
+    triggersMarkers: Record<string, boolean>;
+  }[];
+}
+
+export async function loadMcQuestionsForAdmin(
+  assessmentId: string,
+): Promise<McAdminQuestion[]> {
+  const client = getClient();
+  const { data: questions, error: qErr } = await client
+    .from('mc_questions')
+    .select('id, sequence, prompt')
+    .eq('assessment_id', assessmentId)
+    .order('sequence');
+  if (qErr) throw new Error(qErr.message);
+  if (!questions || questions.length === 0) return [];
+
+  const qIds = questions.map((q) => q.id as string);
+  const { data: options, error: oErr } = await client
+    .from('mc_options')
+    .select('id, question_id, label, text, is_correct, triggers_markers')
+    .in('question_id', qIds)
+    .order('label');
+  if (oErr) throw new Error(oErr.message);
+
+  const byQuestion = new Map<string, McAdminQuestion['options']>();
+  for (const o of options ?? []) {
+    const arr = byQuestion.get(o.question_id as string) ?? [];
+    arr.push({
+      id: o.id as string,
+      label: o.label as 'A' | 'B' | 'C' | 'D',
+      text: o.text as string,
+      isCorrect: !!o.is_correct,
+      triggersMarkers:
+        (o.triggers_markers as Record<string, boolean> | null) ?? {},
+    });
+    byQuestion.set(o.question_id as string, arr);
+  }
+
+  return questions.map((q) => ({
+    id: q.id as string,
+    sequence: q.sequence as number,
+    prompt: q.prompt as string,
+    options: byQuestion.get(q.id as string) ?? [],
+  }));
+}
+
+// List MC assessments for the admin tab picker. Returns one row per
+// kind='multi_choice' assessment.
+export interface McAdminAssessment {
+  id: string;
+  code: string;
+  name: string;
+}
+export async function listMcAssessments(): Promise<McAdminAssessment[]> {
+  const { data, error } = await getClient()
+    .from('assessments')
+    .select('id, code, name')
+    .eq('kind', 'multi_choice')
+    .order('code');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as McAdminAssessment[];
+}
 
 export async function loadMcQuestionsForStudent(
   assessmentId: string

@@ -86,3 +86,9 @@ After `feat/rls-and-admin-cutover` merges to `main`, remove these from Vercel (P
 - `SESSION_SECRET`
 
 Already stripped from local `.env.local`. Leaving on Vercel until merge so any unmerged preview deploys (e.g. Day 1's `feat/supabase-auth` branch) keep working. Once `main` ships Day 2, these are dead weight.
+
+### 6. Production scenario MP4s (per-scenario) — pending Danny upload
+- Day 11 shipped the video player; the placeholder `/public/scenarios/test.mp4` is a 5.59s Synthesia render and is NOT doctrinally usable as final content. It's wired into `conversation_velocity_v1` for E2E verification only.
+- Once production MP4s exist for the 5 revisable scenarios, upload to Supabase Storage and update `scenarios.video_url` + `scenarios.video_duration_seconds` per scenario via the admin SQL editor (or build a tiny admin form — currently inline DB update).
+- For Supabase Storage: confirm the `scenarios` bucket is public, CORS allows `https://mentalvelocitysystem.com`, and the cache-control header is set sensibly (these are 30-second MP4s, ~5-10MB each — cache-forever is fine).
+- Delete `/public/scenarios/test.mp4` once all 5 are uploaded.

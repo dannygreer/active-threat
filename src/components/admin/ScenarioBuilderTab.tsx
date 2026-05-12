@@ -742,9 +742,12 @@ function OptionMarkerEditor({ option }: { option: ScenarioOption }) {
   const [pending, startTransition] = useTransition();
 
   const toggle = (key: MarkerKey) => {
-    const next = { ...markers, [key]: !markers[key] };
-    setMarkers(next);
-    startTransition(() => adminUpdateScreenOptionMarkers(option.id, next));
+    // Functional updater: prevents stale-closure races on rapid double-clicks.
+    setMarkers((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      startTransition(() => adminUpdateScreenOptionMarkers(option.id, next));
+      return next;
+    });
   };
 
   return (

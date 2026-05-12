@@ -5,6 +5,7 @@ import ResponsesTab from './ResponsesTab';
 import ScenarioBuilderTab from './ScenarioBuilderTab';
 import ResponseTaggingTab from './ResponseTaggingTab';
 import SummaryTab from './SummaryTab';
+import McMarkersTab from './McMarkersTab';
 import type {
   ResponseWideRow,
   ResponseLongRow,
@@ -12,13 +13,20 @@ import type {
   Scenario,
   ScenarioListItem,
 } from '@/types';
+import type { McAdminAssessment, McAdminQuestion } from '@/lib/db';
 
-type Tab = 'responses' | 'scenario' | 'tagging' | 'summary';
+type Tab =
+  | 'responses'
+  | 'scenario'
+  | 'tagging'
+  | 'mc_markers'
+  | 'summary';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'responses', label: 'Responses' },
   { id: 'scenario', label: 'Scenario Builder' },
   { id: 'tagging', label: 'Response Tagging' },
+  { id: 'mc_markers', label: 'MC Markers' },
   { id: 'summary', label: 'Summary' },
 ];
 
@@ -28,6 +36,9 @@ interface AdminDashboardProps {
   scenario: Scenario | null;
   responseTags: ResponseTag[];
   scenarios: ScenarioListItem[];
+  mcAssessments: McAdminAssessment[];
+  mcQuestions: McAdminQuestion[];
+  activeMcAssessmentId: string | null;
 }
 
 export default function AdminDashboard({
@@ -36,6 +47,9 @@ export default function AdminDashboard({
   scenario,
   responseTags,
   scenarios,
+  mcAssessments,
+  mcQuestions,
+  activeMcAssessmentId,
 }: AdminDashboardProps) {
   const [tab, setTab] = useState<Tab>('responses');
 
@@ -66,6 +80,13 @@ export default function AdminDashboard({
         )}
         {tab === 'tagging' && (
           <ResponseTaggingTab scenario={scenario} tags={responseTags} />
+        )}
+        {tab === 'mc_markers' && (
+          <McMarkersTab
+            assessments={mcAssessments}
+            questions={mcQuestions}
+            activeAssessmentId={activeMcAssessmentId}
+          />
         )}
         {tab === 'summary' && (
           <SummaryTab
