@@ -13,6 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  Cell,
 } from 'recharts';
 import type { ActiveThreatPair, MarkerAggregate } from '@/lib/dashboard';
 
@@ -92,7 +93,10 @@ export default function Phase1To2Delta({ pairs, markers }: Props) {
                     formatter={(v) => `${v} ms`}
                     cursor={{ fill: 'rgba(0,0,0,0.04)' }}
                   />
-                  <Bar dataKey="rt" fill="#0891b2" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="rt" radius={[2, 2, 0, 0]}>
+                    <Cell fill="#a1a1aa" />
+                    <Cell fill="#0891b2" />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
               <p className="mvs-mono text-[10px] text-zinc-400 mt-2 uppercase tracking-widest text-center">
@@ -168,10 +172,12 @@ function MarkerReductionChart({ markers }: { markers: MarkerAggregate[] }) {
           />
           <Legend
             wrapperStyle={{ fontSize: 11 }}
-            payload={[
-              { value: 'Pre', type: 'square', color: '#a1a1aa' },
-              { value: 'Post', type: 'square', color: '#0891b2' },
-            ]}
+            content={() => (
+              <div className="text-center" style={{ fontSize: 11 }}>
+                <LegendDot color="#a1a1aa" label="Pre" />
+                <LegendDot color="#0891b2" label="Post" />
+              </div>
+            )}
           />
           <Bar dataKey="pre" name="Pre" fill="#a1a1aa" radius={[2, 2, 0, 0]} />
           <Bar dataKey="post" name="Post" fill="#0891b2" radius={[2, 2, 0, 0]} />
@@ -181,8 +187,29 @@ function MarkerReductionChart({ markers }: { markers: MarkerAggregate[] }) {
   );
 }
 
-// Local presentational helpers — duplicated from DashboardClient for now;
-// could be promoted to a shared file later if more pages need them.
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        marginRight: 12,
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          width: 10,
+          height: 10,
+          background: color,
+          marginRight: 4,
+        }}
+      />
+      {label}
+    </span>
+  );
+}
+
 function Card({
   children,
   className = '',

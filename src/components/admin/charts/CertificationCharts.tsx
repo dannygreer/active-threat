@@ -48,12 +48,25 @@ export default function CertificationCharts({ certification }: Props) {
     name: t,
     value: completed.filter((c) => c.tier === t).length,
   }));
+  // Donut palette aligned with the rest of admin: deep cyan for the
+  // pass tiers (matches the Pre/Post bars), warm zinc for borderline,
+  // dark red for fail. No bright greens or yellows.
   const TIER_COLORS: Record<(typeof tiers)[number], string> = {
-    high: '#0891b2',
-    certified: '#22c55e',
-    borderline: '#eab308',
-    not_certified: '#dc2626',
+    high: '#164e63',          // cyan-900
+    certified: '#0891b2',     // cyan-600 (admin accent)
+    borderline: '#a1a1aa',    // zinc-400
+    not_certified: '#7f1d1d', // red-900
   };
+  const TIER_LABELS: Record<(typeof tiers)[number], string> = {
+    high: 'High',
+    certified: 'Certified',
+    borderline: 'Borderline',
+    not_certified: 'Not certified',
+  };
+  const tierData = tierCounts.map((t) => ({
+    ...t,
+    displayName: TIER_LABELS[t.name],
+  }));
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -106,21 +119,28 @@ export default function CertificationCharts({ certification }: Props) {
         {completed.length === 0 ? (
           <EmptyState text="No tiers yet." />
         ) : (
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={tierCounts}
+                data={tierData}
                 dataKey="value"
-                nameKey="name"
-                outerRadius={60}
-                label
+                nameKey="displayName"
+                innerRadius={48}
+                outerRadius={75}
+                paddingAngle={2}
+                stroke="#fff"
+                strokeWidth={2}
               >
-                {tierCounts.map((t, i) => (
+                {tierData.map((t, i) => (
                   <Cell key={i} fill={TIER_COLORS[t.name]} />
                 ))}
               </Pie>
               <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 10 }} iconSize={8} />
+              <Legend
+                wrapperStyle={{ fontSize: 11 }}
+                iconSize={10}
+                iconType="square"
+              />
             </PieChart>
           </ResponsiveContainer>
         )}

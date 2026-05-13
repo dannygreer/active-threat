@@ -44,7 +44,7 @@ interface Props {
 }
 
 export default function AdminHeader({
-  title = 'MVS — Admin',
+  title = 'MENTAL VELOCITY SYSTEM - ADMIN',
   subtitle,
   activeRoute,
 }: Props) {
