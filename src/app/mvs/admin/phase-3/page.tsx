@@ -56,7 +56,7 @@ export default async function AdminPhase3Page({ searchParams }: PageProps) {
           basePath="/mvs/admin/phase-3"
           active={view}
           responsesCount={responses.length}
-          editorLabel="Editor + Outcomes"
+          editorLabel="Outcomes + Editor"
           extraQuery={
             view === 'editor' ? { assessment: active?.code } : undefined
           }
