@@ -4,6 +4,7 @@ import {
   getScenarioById,
   listAssessmentsByCodes,
   loadMcQuestionsForAdmin,
+  getResponsesByCodes,
   type PhaseAssessmentRow,
 } from '@/lib/db';
 import { loadDashboardSnapshot } from '@/lib/dashboard';
@@ -12,22 +13,26 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import ScenarioBuilderTab from '@/components/admin/ScenarioBuilderTab';
 import McMarkersTab from '@/components/admin/McMarkersTab';
 import CertificationCharts from '@/components/admin/charts/CertificationCharts';
+import PhaseSubNav from '@/components/admin/PhaseSubNav';
+import PhaseThreeResponses from '@/components/admin/PhaseThreeResponses';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
   // Next 16 — searchParams is a Promise.
-  searchParams: Promise<{ assessment?: string }>;
+  searchParams: Promise<{ assessment?: string; view?: string }>;
 }
 
 export default async function AdminPhase3Page({ searchParams }: PageProps) {
   await requireSuperAdmin();
-  const { assessment: requestedCode } = await searchParams;
+  const { assessment: requestedCode, view: rawView } = await searchParams;
+  const view = rawView === 'responses' ? 'responses' : 'editor';
 
   const meta = PHASE_META.phase_3;
-  const [assessments, snapshot] = await Promise.all([
+  const [assessments, snapshot, responses] = await Promise.all([
     listAssessmentsByCodes(meta.assessmentCodes),
     loadDashboardSnapshot(),
+    getResponsesByCodes(meta.assessmentCodes, 'post'),
   ]);
 
   const active: PhaseAssessmentRow | null =
@@ -46,10 +51,24 @@ export default async function AdminPhase3Page({ searchParams }: PageProps) {
         <h2 className="mvs-display text-3xl font-bold text-zinc-900">
           {meta.shortLabel}: {meta.name}
         </h2>
+
+        <PhaseSubNav
+          basePath="/mvs/admin/phase-3"
+          active={view}
+          responsesCount={responses.length}
+          extraQuery={
+            view === 'editor' ? { assessment: active?.code } : undefined
+          }
+        />
+
         {assessments.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No Phase 3 assessments configured.
           </p>
+        ) : view === 'responses' ? (
+          <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+            <PhaseThreeResponses responses={responses} />
+          </div>
         ) : (
           <>
             <SubTabStrip assessments={assessments} activeCode={active?.code} />

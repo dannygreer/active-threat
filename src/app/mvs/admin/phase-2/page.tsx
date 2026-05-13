@@ -1,19 +1,29 @@
 import { requireSuperAdmin } from '@/lib/auth';
-import { getScenarioByCode } from '@/lib/db';
+import { getScenarioByCode, getResponsesByCodes } from '@/lib/db';
 import { loadDashboardSnapshot } from '@/lib/dashboard';
 import { PHASE_META } from '@/lib/phases';
 import AdminHeader from '@/components/admin/AdminHeader';
 import Phase1To2Delta from '@/components/admin/charts/Phase1To2Delta';
+import ResponsesTab from '@/components/admin/ResponsesTab';
+import PhaseSubNav from '@/components/admin/PhaseSubNav';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPhase2Page() {
+interface PageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function AdminPhase2Page({ searchParams }: PageProps) {
   await requireSuperAdmin();
+  const { view: rawView } = await searchParams;
+  const view = rawView === 'responses' ? 'responses' : 'editor';
+
   const meta = PHASE_META.phase_2;
   const scenarioCode = meta.assessmentCodes[0]; // active_threat_v1
-  const [scenario, snapshot] = await Promise.all([
+  const [scenario, snapshot, responses] = await Promise.all([
     getScenarioByCode(scenarioCode),
     loadDashboardSnapshot(),
+    getResponsesByCodes([scenarioCode], 'post'),
   ]);
 
   const screens = scenario
@@ -37,6 +47,19 @@ export default async function AdminPhase2Page() {
         <h2 className="mvs-display text-3xl font-bold text-zinc-900">
           {meta.shortLabel}: {meta.name}
         </h2>
+
+        <PhaseSubNav
+          basePath="/mvs/admin/phase-2"
+          active={view}
+          responsesCount={responses.length}
+        />
+
+        {view === 'responses' ? (
+          <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+            <ResponsesTab responses={responses} />
+          </div>
+        ) : (
+          <>
         <section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <p className="mvs-mono text-[11px] uppercase tracking-widest text-amber-800">
             Read-only — scenario shared with Phase 1
@@ -104,6 +127,8 @@ export default async function AdminPhase2Page() {
             markers={snapshot.markers}
           />
         </section>
+          </>
+        )}
       </main>
     </div>
   );

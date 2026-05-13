@@ -575,6 +575,26 @@ export async function getAllResponsesWide(): Promise<ResponseWideRow[]> {
   return (data ?? []) as ResponseWideRow[];
 }
 
+// Phase-scoped slice of responses_wide. Used by the per-phase Responses
+// sub-tab on the admin pages. `codes` is matched against scenario_id (which
+// stores the assessment code), and `phase` filters enrollments.phase
+// (pre / post / practice). Pass phase=null to keep all phases.
+export async function getResponsesByCodes(
+  codes: string[],
+  phase: 'pre' | 'post' | 'practice' | null,
+): Promise<ResponseWideRow[]> {
+  if (codes.length === 0) return [];
+  let q = getClient()
+    .from('responses_wide')
+    .select('*')
+    .in('scenario_id', codes)
+    .order('completed_at', { ascending: false });
+  if (phase) q = q.eq('phase', phase);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ResponseWideRow[];
+}
+
 export async function getAllResponsesLong(): Promise<ResponseLongRow[]> {
   const { data, error } = await getClient()
     .from('responses_long')
