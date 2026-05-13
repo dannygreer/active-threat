@@ -166,7 +166,13 @@ function MarkerReductionChart({ markers }: { markers: MarkerAggregate[] }) {
             formatter={(v) => `${Number(v).toFixed(2)}%`}
             cursor={{ fill: 'rgba(0,0,0,0.04)' }}
           />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend
+            wrapperStyle={{ fontSize: 11 }}
+            payload={[
+              { value: 'Pre', type: 'square', color: '#a1a1aa' },
+              { value: 'Post', type: 'square', color: '#0891b2' },
+            ]}
+          />
           <Bar dataKey="pre" name="Pre" fill="#a1a1aa" radius={[2, 2, 0, 0]} />
           <Bar dataKey="post" name="Post" fill="#0891b2" radius={[2, 2, 0, 0]} />
         </BarChart>
