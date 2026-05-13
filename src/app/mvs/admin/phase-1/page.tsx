@@ -59,6 +59,7 @@ export default async function AdminPhase1Page({ searchParams }: PageProps) {
             <ScenarioBuilderTab
               scenario={scenario}
               scenarios={scenarioListItem}
+              hideVideo
             />
           </div>
         ) : (

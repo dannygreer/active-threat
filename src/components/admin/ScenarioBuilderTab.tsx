@@ -98,11 +98,15 @@ const CLASSIFICATION_FIELDS = [
 interface ScenarioBuilderTabProps {
   scenario: Scenario | null;
   scenarios: ScenarioListItem[];
+  // Hide the video editor card. Phase 1 (active_threat) is text-and-
+  // branching only; only the Phase 3 video scenarios should expose it.
+  hideVideo?: boolean;
 }
 
 export default function ScenarioBuilderTab({
   scenario,
   scenarios,
+  hideVideo = false,
 }: ScenarioBuilderTabProps) {
   const [expandedScreen, setExpandedScreen] = useState<string | null>(null);
   const [showAddScreen, setShowAddScreen] = useState(false);
@@ -164,7 +168,7 @@ export default function ScenarioBuilderTab({
 
       {/* Day 11: video metadata editor — paste a Supabase Storage URL +
           duration, or clear both to remove. */}
-      <VideoEditor scenario={scenario} />
+      {!hideVideo && <VideoEditor scenario={scenario} />}
 
       {/* Phase 1 Freeze: scenario meta editor (commitment mode + 9 tags) */}
       <ScenarioMetaEditor scenario={scenario} />
