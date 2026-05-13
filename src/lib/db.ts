@@ -132,6 +132,24 @@ export async function getScenarioById(id: string): Promise<Scenario | null> {
 // experience out from under anonymous users. The walk-in is the doctrine
 // baseline; everything else is an enrollment-bound assessment behind auth
 // or a token URL.
+// Day 13: load a scenario by its public code (scenarios.scenario_id). When
+// multiple versions exist, returns the highest. Used by the Phase 1 / 2
+// admin pages to look up active_threat_v1 without hardcoding a uuid.
+export async function getScenarioByCode(
+  scenarioCode: string,
+): Promise<Scenario | null> {
+  const client = getClient();
+  const { data, error } = await client
+    .from('scenarios')
+    .select('*')
+    .eq('scenario_id', scenarioCode)
+    .order('version', { ascending: false })
+    .limit(1)
+    .single();
+  if (error || !data) return null;
+  return loadScenarioFromRow(client, data as Record<string, unknown>);
+}
+
 export async function getWalkInScenario(): Promise<Scenario | null> {
   const client = getClient();
   const { data, error } = await client
@@ -268,6 +286,34 @@ export async function listMcAssessments(): Promise<McAdminAssessment[]> {
     .order('code');
   if (error) throw new Error(error.message);
   return (data ?? []) as McAdminAssessment[];
+}
+
+// Phase 3 admin lens: load any subset of assessments by their public codes,
+// preserving the input order so the sub-tab strip renders in doctrine order
+// (test bank first, then 5 video scenarios). Returns scenario_fk as well so
+// the caller can hand the right scenario to ScenarioBuilderTab without a
+// second round-trip.
+export interface PhaseAssessmentRow {
+  id: string;
+  code: string;
+  name: string;
+  kind: 'scenario' | 'multi_choice';
+  scenario_fk: string | null;
+}
+export async function listAssessmentsByCodes(
+  codes: string[],
+): Promise<PhaseAssessmentRow[]> {
+  if (codes.length === 0) return [];
+  const { data, error } = await getClient()
+    .from('assessments')
+    .select('id, code, name, kind, scenario_fk')
+    .in('code', codes);
+  if (error) throw new Error(error.message);
+  const byCode = new Map<string, PhaseAssessmentRow>();
+  for (const r of (data ?? []) as PhaseAssessmentRow[]) byCode.set(r.code, r);
+  return codes
+    .map((c) => byCode.get(c))
+    .filter((r): r is PhaseAssessmentRow => r != null);
 }
 
 export async function loadMcQuestionsForStudent(

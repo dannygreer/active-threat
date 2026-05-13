@@ -17,9 +17,9 @@ interface NavItem {
 const TABS: NavItem[] = [
   { label: 'Dashboard', href: '/mvs/admin', matchPrefix: '/mvs/admin' },
   { label: 'Responses', href: '/mvs/admin/responses', matchPrefix: '/mvs/admin/responses' },
-  { label: 'Scenarios', href: '/mvs/admin/scenarios', matchPrefix: '/mvs/admin/scenarios' },
-  { label: 'Tagging', href: '/mvs/admin/tagging', matchPrefix: '/mvs/admin/tagging' },
-  { label: 'Test Bank', href: '/mvs/admin/test-bank', matchPrefix: '/mvs/admin/test-bank' },
+  { label: 'Phase 1', href: '/mvs/admin/phase-1', matchPrefix: '/mvs/admin/phase-1' },
+  { label: 'Phase 2', href: '/mvs/admin/phase-2', matchPrefix: '/mvs/admin/phase-2' },
+  { label: 'Phase 3', href: '/mvs/admin/phase-3', matchPrefix: '/mvs/admin/phase-3' },
   { label: 'Summary', href: '/mvs/admin/summary', matchPrefix: '/mvs/admin/summary' },
   { label: 'Orgs', href: '/mvs/admin/orgs', matchPrefix: '/mvs/admin/orgs' },
   { label: 'Leads', href: '/mvs/admin/leads', matchPrefix: '/mvs/admin/leads' },

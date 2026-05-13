@@ -30,43 +30,39 @@ async function requireAdmin() {
 export async function adminSetActiveScenario(id: string) {
   await requireAdmin();
   await setActiveScenario(id);
-  // Both dashboard (which surfaces active scenario in completion table) and
-  // the Scenarios page (which loads via getDefaultAdminScenario) need
-  // refreshing — otherwise the picker writes the new is_active flag to the
-  // DB but the route keeps serving its cached props.
-  revalidatePath('/mvs/admin');
-  revalidatePath('/mvs/admin/scenarios');
-  revalidatePath('/mvs/admin/tagging');
+  // Phase 1/2/3 admin pages all read scenarios; layout-level revalidation
+  // covers every /mvs/admin/* page that surfaces the toggled is_active flag.
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpdateScreenText(screenDbId: string, text: string) {
   await requireAdmin();
   await updateScreenText(screenDbId, text);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpdateScreenPrompt(screenDbId: string, prompt: string) {
   await requireAdmin();
   await updateScreenPrompt(screenDbId, prompt);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpdateScreenTimer(screenDbId: string, seconds: number) {
   await requireAdmin();
   await updateScreenTimer(screenDbId, seconds);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpdateOptionText(optionDbId: string, text: string) {
   await requireAdmin();
   await updateOptionText(optionDbId, text);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpdateOptionRoute(optionDbId: string, nextScreenId: string | null) {
   await requireAdmin();
   await updateOptionRoute(optionDbId, nextScreenId);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminAddScreen(
@@ -78,7 +74,7 @@ export async function adminAddScreen(
 ) {
   await requireAdmin();
   await addScreen(scenarioFk, screenId, text, timerSeconds, sortOrder);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminAddOption(
@@ -90,19 +86,19 @@ export async function adminAddOption(
 ) {
   await requireAdmin();
   await addOption(screenFk, label, text, nextScreenId, sortOrder);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminDeleteScreen(screenDbId: string) {
   await requireAdmin();
   await deleteScreen(screenDbId);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminDeleteOption(optionDbId: string) {
   await requireAdmin();
   await deleteOption(optionDbId);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminUpsertResponseTag(
@@ -118,7 +114,7 @@ export async function adminUpsertResponseTag(
     option_label: optionLabel,
     response_category: category,
   });
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 export async function adminDeleteResponseTag(
@@ -128,7 +124,7 @@ export async function adminDeleteResponseTag(
 ) {
   await requireAdmin();
   await deleteResponseTag(scenarioFk, screenId, optionLabel);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 // Phase 1 Freeze admin actions ----------------------------------------------
@@ -139,7 +135,7 @@ export async function adminUpdateScenarioMeta(
 ) {
   await requireAdmin();
   await updateScenarioMeta(scenarioFk, patch);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 // Day 11.5: scenario-level setup_text editor (recognition-test scenarios).
@@ -149,7 +145,7 @@ export async function adminUpdateScenarioSetupText(
 ) {
   await requireAdmin();
   await updateScenarioSetupText(scenarioFk, setupText);
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 // Day 11 — Scenario video editor. Enforces the pair-set invariant before
@@ -172,7 +168,7 @@ export async function adminUpdateScenarioVideo(
       'Both video URL and duration are required (or leave both empty to clear).',
     );
   }
-  revalidatePath('/mvs/admin');
+  revalidatePath('/mvs/admin', 'layout');
 }
 
 // Marker-toggle actions intentionally do NOT call revalidatePath. With ~640
