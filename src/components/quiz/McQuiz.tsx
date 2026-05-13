@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import McRunner from './McRunner';
 import PreviewBanner from './PreviewBanner';
 import { submitMcAssessment, submitMcAssessmentByToken } from '@/actions/quiz';
@@ -26,6 +27,10 @@ interface McQuizProps {
   // skipped — no rows touch responses_long / enrollments. Renders the
   // PreviewBanner at the top.
   previewMode?: boolean;
+  // Where to send the student after submit. Defaults to /app (the
+  // session-day landing). Phase 3 sub-assessments override to
+  // /app/phase-3/next so the battery auto-chains.
+  nextHref?: string;
 }
 
 export default function McQuiz({
@@ -37,7 +42,9 @@ export default function McQuiz({
   participantId,
   token,
   previewMode,
+  nextHref = '/app',
 }: McQuizProps) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>('in_progress');
   const [index, setIndex] = useState(0);
   const [responses, setResponses] = useState<McResponse[]>([]);
@@ -122,18 +129,7 @@ export default function McQuiz({
 
   if (step === 'results') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh] bg-zinc-950 px-6">
-        <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl p-8 text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">Submitted</h1>
-          <p className="text-zinc-300">Thanks. Your responses are recorded.</p>
-          <Link
-            href="/app"
-            className="inline-block mt-4 px-5 py-2 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
-          >
-            Back to assignments
-          </Link>
-        </div>
-      </div>
+      <ResultsScreen nextHref={previewMode ? '/app' : nextHref} router={router} />
     );
   }
 
@@ -164,5 +160,41 @@ export default function McQuiz({
         onResponse={handleResponse}
       />
     </>
+  );
+}
+
+function ResultsScreen({
+  nextHref,
+  router,
+}: {
+  nextHref: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const isChain = nextHref !== '/app';
+  // Auto-progress chain after a brief moment so the student briefly
+  // sees confirmation before the next sub-assessment loads.
+  useEffect(() => {
+    if (!isChain) return;
+    const id = window.setTimeout(() => router.replace(nextHref), 1200);
+    return () => window.clearTimeout(id);
+  }, [isChain, nextHref, router]);
+
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh] bg-zinc-950 px-6">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl p-8 text-center space-y-4">
+        <h1 className="text-2xl font-bold text-white">Submitted</h1>
+        <p className="text-zinc-300">
+          {isChain
+            ? 'Loading the next part of your session…'
+            : 'Thanks. Your responses are recorded.'}
+        </p>
+        <Link
+          href={nextHref}
+          className="inline-block mt-4 px-5 py-2 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
+        >
+          {isChain ? 'Continue →' : 'Back to assignments'}
+        </Link>
+      </div>
+    </div>
   );
 }

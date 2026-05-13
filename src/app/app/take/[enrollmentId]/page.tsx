@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getScenarioById, loadMcQuestionsForStudent } from '@/lib/db';
 import Quiz from '@/components/quiz/Quiz';
 import McQuiz from '@/components/quiz/McQuiz';
+import { PHASE_META } from '@/lib/phases';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,14 @@ export default async function TakeAssessmentPage({
   const last = rest.join(' ') || first || 'Student';
   const participantId = `${(first || 'student').toLowerCase()}_${(last || 'na').toLowerCase()}_${Date.now()}`;
 
+  // Phase 3 sub-assessments chain through /app/phase-3/next so the
+  // battery auto-progresses to the next incomplete sub. Everything
+  // else (Phase 1 pre, Phase 2 post) returns to /app.
+  const isPhase3 = PHASE_META.phase_3.assessmentCodes.includes(
+    assessment.code,
+  );
+  const nextHref = isPhase3 ? '/app/phase-3/next' : '/app';
+
   if (assessment.kind === 'multi_choice') {
     const questions = await loadMcQuestionsForStudent(assessment.id);
     return (
@@ -69,6 +78,7 @@ export default async function TakeAssessmentPage({
           phase={enrollment.phase}
           assessmentCode={assessment.code}
           participantId={participantId}
+          nextHref={nextHref}
         />
       </div>
     );
@@ -88,6 +98,7 @@ export default async function TakeAssessmentPage({
           prefillFirstName={first || 'Student'}
           prefillLastName={last}
           prefillPhase={enrollment.phase}
+          nextHref={nextHref}
         />
       </div>
     );

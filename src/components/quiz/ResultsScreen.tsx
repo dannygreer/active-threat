@@ -1,10 +1,17 @@
 'use client';
 
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { ScreenResponse } from '@/types';
 
 interface ResultsScreenProps {
   firstName: string;
   responses: ScreenResponse[];
+  // Where to send the student after this screen. Phase 3 sub-
+  // assessments pass /app/phase-3/next so the battery auto-chains;
+  // standalone runs default to /app (the session-day landing).
+  nextHref?: string;
 }
 
 function formatTime(ms: number): string {
@@ -14,8 +21,17 @@ function formatTime(ms: number): string {
 export default function ResultsScreen({
   firstName,
   responses,
+  nextHref = '/app',
 }: ResultsScreenProps) {
+  const router = useRouter();
+  const isChain = nextHref !== '/app';
   const totalTime = responses.reduce((sum, r) => sum + r.rtMs, 0);
+
+  useEffect(() => {
+    if (!isChain) return;
+    const id = window.setTimeout(() => router.replace(nextHref), 1500);
+    return () => window.clearTimeout(id);
+  }, [isChain, nextHref, router]);
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6">
@@ -71,6 +87,15 @@ export default function ResultsScreen({
 
         <div className="text-center text-zinc-500">
           Total response time: {formatTime(totalTime)}
+        </div>
+
+        <div className="text-center pt-2">
+          <Link
+            href={nextHref}
+            className="inline-block px-5 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors"
+          >
+            {isChain ? 'Continue →' : 'Back to your session'}
+          </Link>
         </div>
       </div>
     </div>

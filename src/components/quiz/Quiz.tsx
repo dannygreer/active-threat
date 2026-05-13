@@ -65,6 +65,9 @@ interface QuizProps {
   // touches responses_long / responses_wide / enrollments. Renders the
   // PreviewBanner at the top of every screen.
   previewMode?: boolean;
+  // Where to send the student after the results screen. Phase 3 sub-
+  // assessments override to /app/phase-3/next so the battery auto-chains.
+  nextHref?: string;
 }
 
 export default function Quiz({
@@ -76,6 +79,7 @@ export default function Quiz({
   prefillPhase,
   token,
   previewMode,
+  nextHref,
 }: QuizProps) {
   const isEnrolled = !!enrollmentId || !!token;
   // Initial step decided by pickStartingStep (video > setup > reading,
@@ -380,7 +384,13 @@ export default function Quiz({
       );
     }
     case 'results':
-      return <ResultsScreen firstName={firstName} responses={responses} />;
+      return (
+        <ResultsScreen
+          firstName={firstName}
+          responses={responses}
+          nextHref={previewMode ? '/app' : nextHref}
+        />
+      );
   }
   return null;
   })();
