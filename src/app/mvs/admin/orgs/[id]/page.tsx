@@ -5,10 +5,10 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { getOrg, getOrgAdmins, getOrgRoster } from '@/lib/db';
 import { updateOrg } from '@/actions/orgs';
 import OrgForm from '@/components/admin/OrgForm';
-import EnrollmentLinks from '@/components/admin/EnrollmentLinks';
 import InviteOrgAdminForm from '@/components/admin/InviteOrgAdminForm';
 import SendPreInvitesPanel from '@/components/admin/SendPreInvitesPanel';
 import RosterRowActions from '@/components/admin/RosterRowActions';
+import RosterRowExpandable from '@/components/admin/RosterRowExpandable';
 import DangerZone from '@/components/admin/DangerZone';
 
 export const dynamic = 'force-dynamic';
@@ -162,10 +162,10 @@ export default async function OrgDetailPage({
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
+                  <th className="px-4 py-3 w-6"></th>
                   <th className="text-left px-4 py-3 font-medium">Name</th>
                   <th className="text-left px-4 py-3 font-medium">Email</th>
                   <th className="text-left px-4 py-3 font-medium">Role</th>
-                  <th className="text-left px-4 py-3 font-medium">Take links</th>
                   <th className="text-right px-4 py-3 font-medium">Done</th>
                   <th className="text-left px-4 py-3 font-medium">Joined</th>
                   <th className="text-right px-4 py-3 font-medium">Actions</th>
@@ -173,32 +173,17 @@ export default async function OrgDetailPage({
               </thead>
               <tbody>
                 {roster.map((m) => (
-                  <tr
+                  <RosterRowExpandable
                     key={m.id}
-                    className="border-b border-zinc-100 last:border-0"
-                  >
-                    <td className="px-4 py-3 text-zinc-900">
-                      {m.full_name ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">{m.email ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-600">{m.role}</td>
-                    <td className="px-4 py-3">
-                      <EnrollmentLinks
-                        links={m.enrollments.map((e) => ({
-                          id: e.id,
-                          phase: e.phase,
-                          completed_at: e.completed_at,
-                          url: `${baseUrl}/take/${e.secret_token}`,
-                        }))}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-600 tabular-nums">
-                      {m.completed_count}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500">
-                      {new Date(m.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
+                    fullName={m.full_name}
+                    email={m.email}
+                    role={m.role}
+                    completedCount={m.completed_count}
+                    createdAt={m.created_at}
+                    enrollments={m.enrollments}
+                    baseUrl={baseUrl}
+                    columnCount={7}
+                    actions={
                       <RosterRowActions
                         orgId={id}
                         profileId={m.id}
@@ -209,8 +194,8 @@ export default async function OrgDetailPage({
                         }
                         isSelf={m.id === callerId}
                       />
-                    </td>
-                  </tr>
+                    }
+                  />
                 ))}
               </tbody>
             </table>

@@ -885,6 +885,7 @@ export type OrgRosterRow = {
     secret_token: string;
     completed_at: string | null;
     assessment_code: string;
+    assessment_name: string;
   }[];
 };
 
@@ -976,7 +977,7 @@ export async function getOrgRoster(orgId: string): Promise<OrgRosterRow[]> {
   const { data: enrollments } = await client
     .from('enrollments')
     .select(
-      'id, student_id, phase, secret_token, completed_at, assessments(code)'
+      'id, student_id, phase, secret_token, completed_at, assessments(code, name)'
     )
     .in('student_id', Array.from(ids));
   const completedById = new Map<string, number>();
@@ -989,14 +990,16 @@ export async function getOrgRoster(orgId: string): Promise<OrgRosterRow[]> {
       );
     }
     const arr = enrollmentsById.get(e.student_id) ?? [];
+    const joined = (e as unknown as {
+      assessments: { code: string; name: string } | null;
+    }).assessments;
     arr.push({
       id: e.id as string,
       phase: e.phase as 'pre' | 'post' | 'practice',
       secret_token: e.secret_token as string,
       completed_at: (e.completed_at as string | null) ?? null,
-      assessment_code:
-        ((e as unknown as { assessments: { code: string } | null }).assessments
-          ?.code) ?? '',
+      assessment_code: joined?.code ?? '',
+      assessment_name: joined?.name ?? joined?.code ?? '',
     });
     enrollmentsById.set(e.student_id, arr);
   }
