@@ -80,8 +80,8 @@ export default function ResultsScreen({
                 key={i}
                 className="flex items-baseline gap-3 border-t border-zinc-800/70 pt-2 first:border-0 first:pt-0"
               >
-                <span className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-500 shrink-0 w-12">
-                  S{i + 1}
+                <span className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-500 shrink-0 w-24">
+                  Question {String(i + 1).padStart(2, '0')}
                 </span>
                 <span className="text-sm text-zinc-200 flex-1 min-w-0">
                   {r.timedOut
