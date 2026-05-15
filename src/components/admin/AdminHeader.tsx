@@ -74,7 +74,7 @@ export default function AdminHeader({
         </div>
       </div>
 
-      <nav className="max-w-7xl mx-auto px-6 flex border-t border-zinc-100 overflow-x-auto">
+      <nav className="max-w-7xl mx-auto px-6 flex border-t border-zinc-100 overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => {
           const active = isActive(activeRoute, t);
           return (
