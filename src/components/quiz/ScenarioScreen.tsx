@@ -290,7 +290,7 @@ export function AnswerScreen({
                     : '1px solid rgba(1,111,212,0.25)',
                 }}
               >
-                <span className="mvs-mono text-[#4FA9F0] mr-3">
+                <span className="mvs-mono text-[#F87171] mr-3">
                   {option.label}.
                 </span>
                 {option.text}
