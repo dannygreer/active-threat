@@ -97,7 +97,7 @@ export default function ResultsScreen({
           </div>
         </div>
 
-        <div className="text-center mvs-mono text-[10px] uppercase tracking-widest text-zinc-500">
+        <div className="text-center mvs-mono text-[11px] uppercase tracking-widest text-zinc-300">
           Total response time: {formatTime(totalTime)}
         </div>
 
