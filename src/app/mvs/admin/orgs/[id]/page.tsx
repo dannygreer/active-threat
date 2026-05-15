@@ -11,6 +11,7 @@ import RosterRowActions from '@/components/admin/RosterRowActions';
 import RosterRowExpandable from '@/components/admin/RosterRowExpandable';
 import DangerZone from '@/components/admin/DangerZone';
 import OrgOutcomes from '@/components/admin/OrgOutcomes';
+import AddStudentInline from '@/components/admin/AddStudentInline';
 import { loadOrgOutcomes } from '@/lib/dashboard';
 import { formatAdminDateTime, formatAdminDate } from '@/lib/adminFormat';
 
@@ -166,11 +167,16 @@ export default async function OrgDetailPage({
         <OrgOutcomes outcomes={outcomes} />
 
         <section className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
-            <h2 className="mvs-mono text-xs font-semibold text-zinc-900 uppercase tracking-[0.22em]">
-              Roster
-            </h2>
-            <span className="text-xs text-zinc-500">{roster.length} students</span>
+          <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="mvs-mono text-xs font-semibold text-zinc-900 uppercase tracking-[0.22em]">
+                Roster
+              </h2>
+              <span className="text-xs text-zinc-500">
+                {roster.length} students
+              </span>
+            </div>
+            <AddStudentInline orgId={id} />
           </div>
           {roster.length === 0 ? (
             <p className="px-6 py-12 text-center text-zinc-500 text-sm">
