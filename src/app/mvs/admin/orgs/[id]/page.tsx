@@ -12,6 +12,7 @@ import RosterRowExpandable from '@/components/admin/RosterRowExpandable';
 import DangerZone from '@/components/admin/DangerZone';
 import OrgOutcomes from '@/components/admin/OrgOutcomes';
 import AddStudentInline from '@/components/admin/AddStudentInline';
+import SessionDayCard from '@/components/admin/SessionDayCard';
 import { loadOrgOutcomes } from '@/lib/dashboard';
 import { formatAdminDateTime, formatAdminDate } from '@/lib/adminFormat';
 
@@ -101,6 +102,8 @@ export default async function OrgDetailPage({
             submitLabel="Save changes"
           />
         </section>
+
+        <SessionDayCard orgId={id} initialPhase={org.session_phase} />
 
         <section className="bg-white border border-zinc-200 rounded-xl p-6">
           <h2 className="mvs-mono text-xs font-semibold text-zinc-900 uppercase tracking-[0.22em] mb-3">

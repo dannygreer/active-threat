@@ -18,6 +18,19 @@ export default async function StudentHome() {
   const { profile } = await requireStudent('/app');
   const supabase = await createClient();
 
+  // Moderator-controlled gate: the org's session_phase is the ONLY
+  // thing that unlocks phases on the landing (no auto completion lock).
+  // Defaults to 1 if the student has no org or it can't be read.
+  let sessionPhase = 1;
+  if (profile.org_id) {
+    const { data: org } = await supabase
+      .from('orgs')
+      .select('session_phase')
+      .eq('id', profile.org_id)
+      .single();
+    if (org?.session_phase) sessionPhase = org.session_phase as number;
+  }
+
   const { data } = await supabase
     .from('enrollments')
     .select('id, phase, completed_at, assessments(code)');
@@ -44,13 +57,21 @@ export default async function StudentHome() {
   const phase3Done =
     phase3Rows.length > 0 && phase3Rows.every((r) => r.completed_at != null);
 
+  // State: missing (not assigned) > done (completed) > active (moderator
+  // unlocked this phase) > locked (moderator hasn't reached it yet).
   const phases: PhaseConfig[] = [
     {
       number: 1,
       title: PHASE_META.phase_1.name,
       description:
         'Baseline measurement before training. Quick branching scenario.',
-      state: phase1 ? (phase1Done ? 'done' : 'active') : 'missing',
+      state: !phase1
+        ? 'missing'
+        : phase1Done
+        ? 'done'
+        : sessionPhase >= 1
+        ? 'active'
+        : 'locked',
       href: phase1 ? `/app/take/${phase1.id}` : null,
     },
     {
@@ -58,13 +79,13 @@ export default async function StudentHome() {
       title: PHASE_META.phase_2.name,
       description:
         'Retake the same scenario at the end of the day. We measure how your decisions changed.',
-      state: phase2
-        ? phase2Done
-          ? 'done'
-          : phase1Done
-          ? 'active'
-          : 'locked'
-        : 'missing',
+      state: !phase2
+        ? 'missing'
+        : phase2Done
+        ? 'done'
+        : sessionPhase >= 2
+        ? 'active'
+        : 'locked',
       href: phase2 ? `/app/take/${phase2.id}` : null,
     },
     {
@@ -77,7 +98,7 @@ export default async function StudentHome() {
           ? 'missing'
           : phase3Done
           ? 'done'
-          : phase2Done
+          : sessionPhase >= 3
           ? 'active'
           : 'locked',
       href: '/app/phase-3/next',
@@ -88,7 +109,7 @@ export default async function StudentHome() {
     <PhaseLanding
       eyebrow="Session day"
       heading={`Hi, ${profile.full_name?.split(' ')[0] || 'Welcome'}.`}
-      intro="You'll complete three assessments today. Each phase unlocks when you finish the previous one."
+      intro="You'll complete three assessments today. Your facilitator unlocks each phase when the room is ready."
       phases={phases}
     />
   );

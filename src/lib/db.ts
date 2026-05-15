@@ -929,6 +929,9 @@ export type OrgRow = {
   notes: string | null;
   // ISO date string (YYYY-MM-DD) or null. Migration 0016.
   session_date: string | null;
+  // Max phase the moderator has unlocked for this org's students
+  // (1-3). Migration 0020.
+  session_phase: number;
   created_at: string;
   updated_at: string;
 };

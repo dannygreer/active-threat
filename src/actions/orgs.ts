@@ -458,6 +458,23 @@ export async function inviteStudents(
 // rejected to prevent stepping-on-toes mistakes — the rare super_admin
 // promotion/demotion remains a SQL-only operation per docs/needs_human.md.
 
+// Session-day phase gate. The moderator bumps this live from the org
+// page; the student landing only enables phases <= session_phase.
+export async function setOrgSessionPhase(
+  orgId: string,
+  phase: 1 | 2 | 3,
+): Promise<void> {
+  await requireSuperAdmin();
+  const client = adminClient();
+  const { error } = await client
+    .from('orgs')
+    .update({ session_phase: phase })
+    .eq('id', orgId);
+  if (error) throw new Error(`Session phase update failed: ${error.message}`);
+  revalidatePath(`/mvs/admin/orgs/${orgId}`);
+  revalidatePath('/app');
+}
+
 export async function deleteOrg(orgId: string): Promise<void> {
   await requireSuperAdmin();
   const client = adminClient();
