@@ -87,10 +87,11 @@ export default function StudentLandingPreviewToggle({
       <PhaseLanding
         eyebrow="Session day"
         heading="Hi, Student."
-        intro="Three phases today. Complete each one in order — the next phase unlocks when you finish the previous."
+        intro="You'll complete three assessments today. Each phase unlocks when you finish the previous one."
         phases={isStudent ? studentPhases : previewPhases}
         ctaLabel={isStudent ? 'Start →' : 'Preview →'}
         ctaNewTab
+        logo
       />
     </>
   );

@@ -88,7 +88,7 @@ export default async function StudentHome() {
     <PhaseLanding
       eyebrow="Session day"
       heading={`Hi, ${profile.full_name?.split(' ')[0] || 'Welcome'}.`}
-      intro="Three phases today. Complete each one in order — the next phase unlocks when you finish the previous."
+      intro="You'll complete three assessments today. Each phase unlocks when you finish the previous one."
       phases={phases}
     />
   );
