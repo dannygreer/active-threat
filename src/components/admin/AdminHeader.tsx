@@ -16,11 +16,15 @@ interface NavItem {
 
 const TABS: NavItem[] = [
   { label: 'Dashboard', href: '/mvs/admin', matchPrefix: '/mvs/admin' },
-  { label: 'Responses', href: '/mvs/admin/responses', matchPrefix: '/mvs/admin/responses' },
+  // Responses + Summary tabs hidden for now (routes still live). Phase
+  // pages have their own per-phase Responses sub-tab, so the global
+  // Responses/Summary views are redundant for v1. Revisit later — see
+  // memory note "admin_hidden_tabs".
+  // { label: 'Responses', href: '/mvs/admin/responses', matchPrefix: '/mvs/admin/responses' },
   { label: 'Phase 1', href: '/mvs/admin/phase-1', matchPrefix: '/mvs/admin/phase-1' },
   { label: 'Phase 2', href: '/mvs/admin/phase-2', matchPrefix: '/mvs/admin/phase-2' },
   { label: 'Phase 3', href: '/mvs/admin/phase-3', matchPrefix: '/mvs/admin/phase-3' },
-  { label: 'Summary', href: '/mvs/admin/summary', matchPrefix: '/mvs/admin/summary' },
+  // { label: 'Summary', href: '/mvs/admin/summary', matchPrefix: '/mvs/admin/summary' },
   { label: 'Orgs', href: '/mvs/admin/orgs', matchPrefix: '/mvs/admin/orgs' },
   { label: 'Leads', href: '/mvs/admin/leads', matchPrefix: '/mvs/admin/leads' },
 ];
