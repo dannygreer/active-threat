@@ -127,7 +127,11 @@ export default function McQuiz({
 
   if (step === 'results') {
     return (
-      <ResultsScreen nextHref={previewMode ? '/app' : nextHref} router={router} />
+      <ResultsScreen
+        nextHref={nextHref}
+        previewMode={!!previewMode}
+        router={router}
+      />
     );
   }
 
@@ -168,35 +172,59 @@ export default function McQuiz({
 
 function ResultsScreen({
   nextHref,
+  previewMode,
   router,
 }: {
   nextHref: string;
+  previewMode: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
   const isChain = nextHref !== '/app';
-  // Auto-progress chain after a brief moment so the student briefly
-  // sees confirmation before the next sub-assessment loads.
+  // Real student flow auto-advances into the next Phase 3 sub-assessment
+  // after a beat. In preview the admin should click intentionally to
+  // walk into Part 2 — no surprise auto-jump.
   useEffect(() => {
-    if (!isChain) return;
+    if (!isChain || previewMode) return;
     const id = window.setTimeout(() => router.replace(nextHref), 1200);
     return () => window.clearTimeout(id);
-  }, [isChain, nextHref, router]);
+  }, [isChain, previewMode, nextHref, router]);
+
+  const message = isChain
+    ? previewMode
+      ? 'Part 1 complete. Continue to the video scenarios.'
+      : 'Loading the next part of your session…'
+    : 'Thanks. Your responses are recorded.';
+  const cta = isChain
+    ? previewMode
+      ? 'Continue to scenarios →'
+      : 'Continue →'
+    : 'Back to assignments';
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 min-h-[60vh] bg-zinc-950 px-6">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl p-8 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-white">Submitted</h1>
-        <p className="text-zinc-300">
-          {isChain
-            ? 'Loading the next part of your session…'
-            : 'Thanks. Your responses are recorded.'}
-        </p>
-        <Link
-          href={nextHref}
-          className="inline-block mt-4 px-5 py-2 bg-white text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
+    <div className="relative flex flex-col items-center justify-center flex-1 min-h-[60vh] px-6 py-10">
+      <div className="absolute inset-0 bg-zinc-950" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_30%,#0e1422_0%,#050810_60%,#000_100%)]" />
+
+      <div className="relative z-10 w-full max-w-md">
+        <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#4FA9F0]" />
+        <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#4FA9F0]" />
+        <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#4FA9F0]" />
+        <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#4FA9F0]" />
+        <div
+          className="relative bg-zinc-950/60 backdrop-blur-sm p-8 text-center space-y-4"
+          style={{ border: '1px solid rgba(1,111,212,0.33)' }}
         >
-          {isChain ? 'Continue →' : 'Back to assignments'}
-        </Link>
+          <h1 className="mvs-display text-2xl font-bold uppercase tracking-wide text-zinc-100">
+            Submitted
+          </h1>
+          <p className="text-zinc-400 text-sm">{message}</p>
+          <Link
+            href={nextHref}
+            className="inline-block mt-2 px-5 py-3 mvs-mono text-sm uppercase tracking-widest bg-[#016FD4] text-white hover:bg-[#0a5fb0] transition-colors"
+          >
+            {cta}
+          </Link>
+        </div>
       </div>
     </div>
   );
