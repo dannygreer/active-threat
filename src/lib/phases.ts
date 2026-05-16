@@ -51,16 +51,12 @@ export const PHASE_META: Record<PhaseId, PhaseMeta> = {
     shortLabel: 'Phase 3',
     name: 'Operational Governance Certification',
     enrollmentPhase: 'post',
-    assessmentCodes: [
-      'mvs_test_bank_v1',
-      'scenario_conversation_velocity_v1',
-      'scenario_perception_narrowing_v1',
-      'scenario_escalation_loop_v1',
-      'scenario_team_velocity_v1',
-      'scenario_recovery_drift_v1',
-    ],
+    // Scoped to the written test only (2026-05-16). The 5 video
+    // scenario codes were pulled out of Phase 3 — see
+    // memory/phase3_scenarios_removed.md. Revert = re-add them here.
+    assessmentCodes: ['mvs_test_bank_v1'],
     description:
-      'End-of-session-day certification battery: 50-Q multi-choice exam + video scenarios.',
+      'End-of-session-day certification: 50-question written test.',
   },
 };
 

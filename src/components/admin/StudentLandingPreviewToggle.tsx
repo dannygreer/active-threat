@@ -30,7 +30,7 @@ export default function StudentLandingPreviewToggle({
   const p2desc =
     'Retake the same scenario at the end of the day. We measure how your decisions changed.';
   const p3desc =
-    'End-of-day certification: written test + five video scenarios. Each one starts automatically when the previous finishes.';
+    'End-of-day certification: a 50-question written test.';
 
   const previewPhases: PhaseConfig[] = [
     { number: 1, title: PHASE_META.phase_1.name, description: p1desc, state: 'active', href: scenarioHref },

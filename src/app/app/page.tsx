@@ -92,7 +92,7 @@ export default async function StudentHome() {
       number: 3,
       title: PHASE_META.phase_3.name,
       description:
-        'End-of-day certification: written test + five video scenarios. Each one starts automatically when the previous finishes.',
+        'End-of-day certification: a 50-question written test.',
       state:
         phase3Rows.length === 0
           ? 'missing'
