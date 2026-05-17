@@ -156,6 +156,17 @@ function EnrollmentLine({
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        {completed &&
+          enrollment.assessment_code === 'active_threat_v1' && (
+            <a
+              href={`/mvs/admin/report/${enrollment.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mvs-mono text-[10px] uppercase tracking-widest px-2 py-1 border border-zinc-300 text-zinc-700 rounded hover:bg-zinc-50 transition-colors"
+            >
+              Report ↗
+            </a>
+          )}
         {!completed && (
           <button
             type="button"

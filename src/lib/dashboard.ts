@@ -203,6 +203,124 @@ export async function loadPhase3Snapshot(): Promise<Phase3Snapshot> {
   };
 }
 
+// ─── Phase B: per-student Phase 1 report ────────────────────────────
+import {
+  buildPhase1Report,
+  type SessionMetrics,
+  type Phase1ReportText,
+} from '@/lib/phase1Report';
+
+export interface Phase1ReportPathStep {
+  order: number;
+  screenId: string;
+  prompt: string;
+  optionLabel: string | null;
+  optionText: string | null;
+  optionClassification: string | null;
+  rtSeconds: number | null;
+  timedOut: boolean;
+}
+
+export interface Phase1Report {
+  enrollmentId: string;
+  studentName: string | null;
+  phase: string;
+  completedAt: string | null;
+  metrics: SessionMetrics;
+  text: Phase1ReportText;
+  path: Phase1ReportPathStep[];
+}
+
+export async function loadPhase1Report(
+  enrollmentId: string,
+): Promise<Phase1Report | null> {
+  const sb = client();
+
+  const { data: m } = await sb
+    .from('phase1_session_metrics')
+    .select('*')
+    .eq('enrollment_id', enrollmentId)
+    .maybeSingle();
+  if (!m) return null;
+
+  // Student name (metrics view exposes student_id only).
+  const { data: prof } = await sb
+    .from('profiles')
+    .select('full_name')
+    .eq('id', (m as { student_id: string }).student_id)
+    .maybeSingle();
+
+  // Decision path: events in order.
+  const { data: events } = await sb
+    .from('responses_long')
+    .select(
+      'question_id, option_selected, rt_ms, timed_out, timestamp, scenario_id',
+    )
+    .eq('enrollment_id', enrollmentId)
+    .order('timestamp', { ascending: true });
+
+  // Enrich with screen prompt + option text + classification from the
+  // canonical scenario (active_threat_v1).
+  const scenarioId =
+    (events?.[0] as { scenario_id?: string } | undefined)?.scenario_id ??
+    'active_threat_v1';
+  const { data: opts } = await sb
+    .from('screen_options')
+    .select(
+      'option_label, option_text, option_classification, scenario_screens!inner(screen_id, sort_order, scenarios!inner(scenario_id))',
+    )
+    .eq('scenario_screens.scenarios.scenario_id', scenarioId);
+
+  type OptRow = {
+    option_label: string;
+    option_text: string | null;
+    option_classification: string | null;
+    scenario_screens: { screen_id: string; sort_order: number };
+  };
+  const optMap = new Map<string, OptRow>();
+  for (const o of (opts ?? []) as unknown as OptRow[]) {
+    optMap.set(`${o.scenario_screens.screen_id}::${o.option_label}`, o);
+  }
+
+  const path: Phase1ReportPathStep[] = (
+    (events ?? []) as {
+      question_id: string;
+      option_selected: string | null;
+      rt_ms: number;
+      timed_out: boolean;
+    }[]
+  ).map((e, i) => {
+    const hit = e.option_selected
+      ? optMap.get(`${e.question_id}::${e.option_selected}`)
+      : undefined;
+    return {
+      order: i + 1,
+      screenId: e.question_id,
+      prompt: '',
+      optionLabel: e.option_selected,
+      optionText: hit?.option_text ?? null,
+      optionClassification: hit?.option_classification ?? null,
+      rtSeconds: e.rt_ms != null ? Math.round(e.rt_ms / 100) / 10 : null,
+      timedOut: e.timed_out,
+    };
+  });
+
+  const metrics = m as unknown as SessionMetrics & {
+    phase: string;
+    completed_at: string | null;
+  };
+
+  return {
+    enrollmentId,
+    studentName: (prof as { full_name: string | null } | null)?.full_name ?? null,
+    phase: metrics.phase,
+    completedAt: metrics.completed_at,
+    metrics,
+    text: buildPhase1Report(metrics),
+    path,
+  };
+}
+
 export async function loadDashboardSnapshot(): Promise<DashboardSnapshot> {
   const sb = client();
   const [volume, completion, atPairs, markers, certification, operational] =
