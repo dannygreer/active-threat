@@ -206,8 +206,12 @@ export async function loadPhase3Snapshot(): Promise<Phase3Snapshot> {
 // ─── Phase B: per-student Phase 1 report ────────────────────────────
 import {
   buildPhase1Report,
+  comparePrePost,
+  buildUnitReport,
   type SessionMetrics,
   type Phase1ReportText,
+  type PrePostReport,
+  type UnitReport,
 } from '@/lib/phase1Report';
 
 export interface Phase1ReportPathStep {
@@ -319,6 +323,91 @@ export async function loadPhase1Report(
     text: buildPhase1Report(metrics),
     path,
   };
+}
+
+// ─── Phase C: §7 within-person pre/post comparison ──────────────────
+export interface PrePostReportData {
+  studentName: string | null;
+  preCompletedAt: string | null;
+  postCompletedAt: string | null;
+  preMetrics: SessionMetrics;
+  postMetrics: SessionMetrics;
+  report: PrePostReport;
+}
+
+// Given any phase-1 enrollment, resolve the participant's pre AND post
+// active_threat sessions and compare them to each other (spec §7).
+// Returns null until BOTH a pre and a post session exist.
+export async function loadPrePostReport(
+  enrollmentId: string,
+): Promise<PrePostReportData | null> {
+  const sb = client();
+
+  const { data: anchor } = await sb
+    .from('phase1_session_metrics')
+    .select('*')
+    .eq('enrollment_id', enrollmentId)
+    .maybeSingle();
+  if (!anchor) return null;
+  const studentId = (anchor as { student_id: string }).student_id;
+
+  const { data: rows } = await sb
+    .from('phase1_session_metrics')
+    .select('*')
+    .eq('student_id', studentId);
+  const all = (rows as ({ phase: string; completed_at: string | null } & SessionMetrics)[] | null) ?? [];
+  const pre = all.find((r) => r.phase === 'pre');
+  const post = all.find((r) => r.phase === 'post');
+  if (!pre || !post) return null;
+
+  const { data: prof } = await sb
+    .from('profiles')
+    .select('full_name')
+    .eq('id', studentId)
+    .maybeSingle();
+
+  return {
+    studentName: (prof as { full_name: string | null } | null)?.full_name ?? null,
+    preCompletedAt: pre.completed_at,
+    postCompletedAt: post.completed_at,
+    preMetrics: pre,
+    postMetrics: post,
+    report: comparePrePost(pre, post),
+  };
+}
+
+// ─── Phase C: §8 unit-level aggregate (name-suppressed) ─────────────
+export interface UnitReportData {
+  report: UnitReport;
+}
+
+// Aggregate every completed active_threat phase-1 session in an org
+// (spec §8). No participant identity is loaded — names never enter the
+// command report.
+export async function loadUnitReport(
+  orgId: string,
+): Promise<UnitReportData | null> {
+  const sb = client();
+
+  const { data: enr } = await sb
+    .from('enrollment_scores')
+    .select('enrollment_id')
+    .eq('org_id', orgId)
+    .eq('assessment_code', 'active_threat_v1')
+    .not('completed_at', 'is', null);
+  const ids = ((enr as { enrollment_id: string }[] | null) ?? []).map(
+    (r) => r.enrollment_id,
+  );
+  if (!ids.length) return null;
+
+  const { data: rows } = await sb
+    .from('phase1_session_metrics')
+    .select('*')
+    .in('enrollment_id', ids);
+  const sessions = (rows as SessionMetrics[] | null) ?? [];
+  const report = buildUnitReport(sessions);
+  if (!report) return null;
+  return { report };
 }
 
 export async function loadDashboardSnapshot(): Promise<DashboardSnapshot> {

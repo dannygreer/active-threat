@@ -167,6 +167,18 @@ function EnrollmentLine({
               Report ↗
             </a>
           )}
+        {completed &&
+          enrollment.assessment_code === 'active_threat_v1' &&
+          enrollment.phase === 'post' && (
+            <a
+              href={`/mvs/admin/report/prepost/${enrollment.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mvs-mono text-[10px] uppercase tracking-widest px-2 py-1 border border-zinc-300 text-zinc-700 rounded hover:bg-zinc-50 transition-colors"
+            >
+              Pre/Post ↗
+            </a>
+          )}
         {!completed && (
           <button
             type="button"

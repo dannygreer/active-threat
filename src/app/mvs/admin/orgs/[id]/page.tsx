@@ -169,6 +169,19 @@ export default async function OrgDetailPage({
 
         <OrgOutcomes outcomes={outcomes} />
 
+        {outcomes.hasAnyCompletions && (
+          <div className="flex justify-end">
+            <a
+              href={`/mvs/admin/report/unit/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mvs-mono text-[10px] uppercase tracking-widest px-3 py-2 border border-zinc-300 text-zinc-700 rounded hover:bg-zinc-50 transition-colors"
+            >
+              Unit command report ↗
+            </a>
+          </div>
+        )}
+
         <section className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
