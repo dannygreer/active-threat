@@ -21,7 +21,7 @@ const STEPS = [
   },
   {
     title: 'Post-assessment + score release',
-    body: 'Same instruments, post-training. Pre/post comparison generates the individual MVS Index. 80%+ on the multi-choice section earns certified status.',
+    body: 'Same instruments, post-training. Pre/post comparison generates the individual MVS Index — a developmental measure of how decision performance changed under pressure. Every professional who completes the process is certified.',
   },
   {
     title: 'Recertification cadence',

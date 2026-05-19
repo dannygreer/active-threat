@@ -35,13 +35,13 @@ export interface SessionMetrics {
 }
 
 export type SessionClassification =
-  | 'Controlled / Adaptive'
+  | 'Controlled / Stabilizing'
   | 'Acceptable / Neutral'
-  | 'Premature Commitment Pattern'
-  | 'Drift-Dominant Pattern'
-  | 'Sequencing Instability Pattern'
-  | 'Governance Instability Pattern'
-  | 'High-Risk / Unsafe Pattern';
+  | 'Premature Commitment / Acceleration'
+  | 'Drift / Delayed Commitment'
+  | 'Sequencing Instability'
+  | 'Governance Instability'
+  | 'Unsafe / High Risk';
 
 export type TimingClassification =
   | 'Stable Timing'
@@ -73,13 +73,13 @@ export function classifySession(m: SessionMetrics): SessionClassification {
   const meanRt = n(m.mean_rt);
   const rtSd = n(m.rt_sd);
 
-  if (ngl >= 14 || (esc >= 10 && rec > -2)) return 'High-Risk / Unsafe Pattern';
-  if (esc + prem >= 10 || accel >= 0.45) return 'Premature Commitment Pattern';
+  if (ngl >= 14 || (esc >= 10 && rec > -2)) return 'Unsafe / High Risk';
+  if (esc + prem >= 10 || accel >= 0.45) return 'Premature Commitment / Acceleration';
   if (drift >= 6 || (driftR >= 0.3 && meanRt > 6.0))
-    return 'Drift-Dominant Pattern';
-  if (seq >= 6 || seqR >= 0.25) return 'Sequencing Instability Pattern';
-  if (gov >= 7 || rtSd > 4.0) return 'Governance Instability Pattern';
-  if (ngl <= 4 && rec <= -4 && rtSd <= 3.0) return 'Controlled / Adaptive';
+    return 'Drift / Delayed Commitment';
+  if (seq >= 6 || seqR >= 0.25) return 'Sequencing Instability';
+  if (gov >= 7 || rtSd > 4.0) return 'Governance Instability';
+  if (ngl <= 4 && rec <= -4 && rtSd <= 3.0) return 'Controlled / Stabilizing';
   return 'Acceptable / Neutral';
 }
 
@@ -109,19 +109,19 @@ export function classifyTiming(m: SessionMetrics): {
 
 // ─── §6.1 Primary classification text (conservative, non-diagnostic) ─
 const PRIMARY_TEXT: Record<SessionClassification, string> = {
-  'Controlled / Adaptive':
+  'Controlled / Stabilizing':
     'The participant demonstrated a controlled/adaptive pattern characterized by preserved sequencing, stabilizing choices, and maintained governance under pressure.',
   'Acceptable / Neutral':
     'The participant demonstrated workable baseline performance with no single dominant instability pattern. Minor inefficiencies may be present but did not dominate the scenario path.',
-  'Premature Commitment Pattern':
+  'Premature Commitment / Acceleration':
     'The participant demonstrated an acceleration-dominant pattern characterized by rapid commitment, reduced reassessment, and increased risk of narrowing under pressure.',
-  'Drift-Dominant Pattern':
+  'Drift / Delayed Commitment':
     'The participant demonstrated a drift-dominant pattern characterized by delayed closure, continued uncertainty cycling, or slowed transition into stabilization.',
-  'Sequencing Instability Pattern':
+  'Sequencing Instability':
     'The participant demonstrated sequencing instability, meaning decisions were more likely to occur out of optimal operational order under pressure.',
-  'Governance Instability Pattern':
+  'Governance Instability':
     'The participant demonstrated governance instability, reflected by inconsistent pacing, unstable decision structure, or difficulty preserving internal rate control.',
-  'High-Risk / Unsafe Pattern':
+  'Unsafe / High Risk':
     'The participant demonstrated a high-risk pressure pattern marked by significant instability load with limited recovery or stabilizing behavior.',
 };
 
@@ -145,17 +145,17 @@ const MODIFIER_TEXT: Record<TimingModifier, string> = {
 
 // ─── §6.3 Training recommendation (dominant finding) ────────────────
 const TRAINING_REC: Record<SessionClassification, string> = {
-  'Premature Commitment Pattern':
+  'Premature Commitment / Acceleration':
     'Training should emphasize protecting the gap before commitment, forcing one additional variable before final action, and reducing urgency-dominant closure.',
-  'Drift-Dominant Pattern':
+  'Drift / Delayed Commitment':
     'Training should emphasize commitment initiation, uncertainty tolerance, and transition from observation into stabilization.',
-  'Sequencing Instability Pattern':
+  'Sequencing Instability':
     'Training should emphasize operational order, stabilization before communication, and structured next-step sequencing.',
-  'Governance Instability Pattern':
+  'Governance Instability':
     'Training should emphasize internal rate control, controlled pacing, and stabilization under shifting pressure.',
-  'High-Risk / Unsafe Pattern':
+  'Unsafe / High Risk':
     'Training should emphasize recovery acceleration, re-opening optionality, and restoring sequencing after disruption.',
-  'Controlled / Adaptive':
+  'Controlled / Stabilizing':
     'Performance is within the controlled band. Maintenance training should reinforce existing pacing discipline and recovery behavior under escalating load.',
   'Acceptable / Neutral':
     'No dominant deficit. General training should target consistency of pacing and earlier stabilization to move performance toward the controlled band.',
@@ -194,13 +194,13 @@ export function buildPhase1Report(m: SessionMetrics): Phase1ReportText {
 // Severity ordering so "classification improved/worsened" is decidable
 // (§7.1). Lower = more controlled, higher = more unsafe.
 const CLASS_RANK: Record<SessionClassification, number> = {
-  'Controlled / Adaptive': 0,
+  'Controlled / Stabilizing': 0,
   'Acceptable / Neutral': 1,
-  'Drift-Dominant Pattern': 2,
-  'Sequencing Instability Pattern': 2,
-  'Governance Instability Pattern': 2,
-  'Premature Commitment Pattern': 3,
-  'High-Risk / Unsafe Pattern': 4,
+  'Drift / Delayed Commitment': 2,
+  'Sequencing Instability': 2,
+  'Governance Instability': 2,
+  'Premature Commitment / Acceleration': 3,
+  'Unsafe / High Risk': 4,
 };
 
 export type PrePostSummary =
@@ -460,7 +460,7 @@ export function buildUnitReport(sessions: SessionMetrics[]): UnitReport | null {
     classes.filter(preds).length / N;
 
   const controlledOrAcceptable = pctClass(
-    (c) => c === 'Controlled / Adaptive' || c === 'Acceptable / Neutral',
+    (c) => c === 'Controlled / Stabilizing' || c === 'Acceptable / Neutral',
   );
 
   // §8.2 — multiple patterns can co-apply.
@@ -469,7 +469,7 @@ export function buildUnitReport(sessions: SessionMetrics[]): UnitReport | null {
     patterns.push('Controlled Unit Profile');
   if (
     topMarker[0].key === 'premature_commitment_total' ||
-    pctClass((c) => c === 'Premature Commitment Pattern') >= 0.35
+    pctClass((c) => c === 'Premature Commitment / Acceleration') >= 0.35
   )
     patterns.push('Premature Commitment Unit Risk');
   if (
@@ -480,7 +480,7 @@ export function buildUnitReport(sessions: SessionMetrics[]): UnitReport | null {
     patterns.push('Drift Unit Risk');
   if (
     topMarker.slice(0, 2).some((m) => m.key === 'sequencing_break_total') ||
-    pctClass((c) => c === 'Sequencing Instability Pattern') >= 0.25
+    pctClass((c) => c === 'Sequencing Instability') >= 0.25
   )
     patterns.push('Sequencing Training Need');
   // §8.2 "S5 SD is highest step-level SD" — no per-node SD in the
@@ -497,12 +497,12 @@ export function buildUnitReport(sessions: SessionMetrics[]): UnitReport | null {
   // (§8.1). Map to the §6.3 recommendation for the matching pattern.
   const dom = topMarker[0];
   const TARGET_REC: Record<string, string> = {
-    premature_commitment_total: TRAINING_REC['Premature Commitment Pattern'],
-    escalation_total: TRAINING_REC['Premature Commitment Pattern'],
-    drift_total: TRAINING_REC['Drift-Dominant Pattern'],
-    sequencing_break_total: TRAINING_REC['Sequencing Instability Pattern'],
-    governance_instability_total: TRAINING_REC['Governance Instability Pattern'],
-    narrowing_total: TRAINING_REC['Premature Commitment Pattern'],
+    premature_commitment_total: TRAINING_REC['Premature Commitment / Acceleration'],
+    escalation_total: TRAINING_REC['Premature Commitment / Acceleration'],
+    drift_total: TRAINING_REC['Drift / Delayed Commitment'],
+    sequencing_break_total: TRAINING_REC['Sequencing Instability'],
+    governance_instability_total: TRAINING_REC['Governance Instability'],
+    narrowing_total: TRAINING_REC['Premature Commitment / Acceleration'],
   };
 
   return {

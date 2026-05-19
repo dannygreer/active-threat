@@ -55,8 +55,15 @@ export default function PitchDeckClient({ snapshot }: Props) {
   const markerData = Array.from(byMarker.values());
 
   const completed = certification.filter((c) => c.score_percent != null);
-  const passed = completed.filter((c) => c.pass === true).length;
-  const passPct = completed.length === 0 ? 0 : Math.round((100 * passed) / completed.length);
+  // Completion-based certification (no pass/fail). The informational
+  // pitch metric is the average MVS knowledge score, not a pass rate.
+  const avgScore =
+    completed.length === 0
+      ? 0
+      : Math.round(
+          completed.reduce((s, c) => s + Number(c.score_percent), 0) /
+            completed.length,
+        );
 
   return (
     <div className="min-h-screen bg-white mvs-body p-8 print:p-0">
@@ -146,17 +153,18 @@ export default function PitchDeckClient({ snapshot }: Props) {
           )}
         </div>
 
-        {/* Card 4: Pass Rate */}
+        {/* Card 4: Average certification score */}
         <div className="border border-zinc-200 rounded-lg p-6 col-span-1 md:col-span-2">
           <p className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-500">
-            Certification pass rate
+            Average certification score
           </p>
           <div className="mvs-display text-6xl font-bold text-zinc-900 mt-2">
-            {passPct}%
+            {avgScore}%
           </div>
           <p className="text-sm text-zinc-600 mt-2">
-            of {completed.length} students scored ≥ 80% on the 50-question
-            certification exam.
+            mean score across {completed.length} certified completer
+            {completed.length === 1 ? '' : 's'} on the 50-question exam —
+            MVS is completion-based, not pass/fail.
           </p>
         </div>
       </div>

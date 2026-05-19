@@ -36,20 +36,18 @@ export const MARKER_LABELS: Record<MarkerKey, string> = {
   governance_instability: 'Governance Instability',
 };
 
-// Option-level classification labels. Superset of the original Report
-// Generation Logic §5.1 set + the labels introduced by the Missing
-// Node Marker Completion Matrix (Controlled / Adaptive, Unsafe / High
-// Risk, Controlled but Passive). Scully's vocabulary is canonical.
+// Scully's canonical 7-label set (2026-05-19 doctrine response).
+// "Controlled but Passive" is NOT a category — it maps to Acceptable /
+// Neutral when operationally stable, or Drift / Delayed Commitment when
+// hesitation is operationally significant.
 export const OPTION_CLASSIFICATIONS = [
   'Controlled / Stabilizing',
-  'Controlled / Adaptive',
-  'Controlled but Passive',
+  'Acceptable / Neutral',
   'Premature Commitment / Acceleration',
-  'Drift / Delayed Commitment',
   'Sequencing Instability',
   'Governance Instability',
+  'Drift / Delayed Commitment',
   'Unsafe / High Risk',
-  'Acceptable / Neutral',
 ] as const;
 
 interface Props {

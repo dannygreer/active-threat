@@ -208,11 +208,15 @@ begin
       when 'C' then '{"escalation":3,"narrowing":3,"premature_commitment":3,"sequencing_break":3,"drift":2,"recovery":1,"governance_instability":3}'::jsonb
       when 'D' then '{"escalation":1,"narrowing":1,"sequencing_break":1,"intervention":1,"recovery":-1,"governance_instability":1}'::jsonb
     end,
+    -- Canonical 7-set (Scully 2026-05-19). "Controlled but Passive" is
+    -- not a category: option D's rationale ("delay adaptive action")
+    -- makes its hesitation operationally significant → Drift / Delayed
+    -- Commitment. Option A normalized to Controlled / Stabilizing.
     option_classification = case o.option_label
-      when 'A' then 'Controlled / Adaptive'
+      when 'A' then 'Controlled / Stabilizing'
       when 'B' then 'Acceptable / Neutral'
       when 'C' then 'Unsafe / High Risk'
-      when 'D' then 'Controlled but Passive'
+      when 'D' then 'Drift / Delayed Commitment'
     end,
     rationale = case o.option_label
       when 'A' then 'Maintains partial sequencing and preserves ambiguity tolerance.'

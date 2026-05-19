@@ -1,7 +1,10 @@
 'use client';
 
-// Certification pass-rate stat + score-distribution histogram + tier
-// breakdown pie. Extracted from DashboardClient.tsx so the Dashboard's
+// Certification + score-distribution + performance-band breakdown.
+// MVS is completion-based, not pass/fail (Scully doctrine 2026-05-19):
+// every meaningful completer is certified. The score bands are
+// informational/developmental for org distribution analysis only — no
+// "fail" framing. Extracted from DashboardClient.tsx so the Dashboard's
 // Section C and the Phase 3 admin page can both render these without
 // duplicating Recharts code.
 import {
@@ -25,9 +28,8 @@ interface Props {
 
 export default function CertificationCharts({ certification }: Props) {
   const completed = certification.filter((c) => c.score_percent != null);
-  const passed = completed.filter((c) => c.pass === true).length;
-  const passPct =
-    completed.length === 0 ? 0 : Math.round((100 * passed) / completed.length);
+  // Completion-based: every completer is certified (no pass/fail gate).
+  const certified = completed.length;
 
   const buckets = [
     { range: '<70', count: 0 },
@@ -48,20 +50,20 @@ export default function CertificationCharts({ certification }: Props) {
     name: t,
     value: completed.filter((c) => c.tier === t).length,
   }));
-  // Donut palette aligned with the rest of admin: deep cyan for the
-  // pass tiers (matches the Pre/Post bars), warm zinc for borderline,
-  // dark red for fail. No bright greens or yellows.
+  // Informational performance bands — NOT pass/fail. Cyan gradient by
+  // score depth, neutral zinc for the lowest band (developmental, not
+  // failing). No red: nobody "fails" a completion-based assessment.
   const TIER_COLORS: Record<(typeof tiers)[number], string> = {
     high: '#164e63',          // cyan-900
     certified: '#0891b2',     // cyan-600 (admin accent)
-    borderline: '#a1a1aa',    // zinc-400
-    not_certified: '#7f1d1d', // red-900
+    borderline: '#67a9bd',    // muted cyan
+    not_certified: '#a1a1aa', // zinc-400 (neutral, not failing)
   };
   const TIER_LABELS: Record<(typeof tiers)[number], string> = {
     high: 'High',
-    certified: 'Certified',
-    borderline: 'Borderline',
-    not_certified: 'Not certified',
+    certified: 'Proficient',
+    borderline: 'Developing',
+    not_certified: 'Foundational',
   };
   const tierData = tierCounts.map((t) => ({
     ...t,
@@ -72,16 +74,18 @@ export default function CertificationCharts({ certification }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card>
-        <CardTitle>Pass rate</CardTitle>
+        <CardTitle>Certified</CardTitle>
         {completed.length === 0 ? (
-          <EmptyState text="No certification exams completed yet." />
+          <EmptyState text="No assessments completed yet." />
         ) : (
           <>
             <div className="mvs-display text-5xl font-bold text-zinc-900 mt-2">
-              {passPct}%
+              {certified}
             </div>
             <p className="text-sm text-zinc-500 mt-1">
-              {passed} of {completed.length} students scored ≥ 80%.
+              All {completed.length} completer
+              {completed.length === 1 ? '' : 's'} certified — MVS is
+              completion-based, not pass/fail.
             </p>
           </>
         )}
@@ -116,7 +120,7 @@ export default function CertificationCharts({ certification }: Props) {
       </Card>
 
       <Card>
-        <CardTitle>Tier breakdown</CardTitle>
+        <CardTitle>Performance bands</CardTitle>
         {completed.length === 0 ? (
           <EmptyState text="No tiers yet." />
         ) : (
