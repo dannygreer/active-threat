@@ -343,21 +343,41 @@ export async function loadPrePostReport(
 ): Promise<PrePostReportData | null> {
   const sb = client();
 
-  const { data: anchor } = await sb
+  type Row = {
+    enrollment_id: string;
+    student_id: string;
+    phase: string;
+    completed_at: string | null;
+  } & SessionMetrics;
+
+  const { data: anchorRow } = await sb
     .from('phase1_session_metrics')
     .select('*')
     .eq('enrollment_id', enrollmentId)
     .maybeSingle();
-  if (!anchor) return null;
-  const studentId = (anchor as { student_id: string }).student_id;
+  if (!anchorRow) return null;
+  const anchor = anchorRow as Row;
+  const studentId = anchor.student_id;
 
   const { data: rows } = await sb
     .from('phase1_session_metrics')
     .select('*')
     .eq('student_id', studentId);
-  const all = (rows as ({ phase: string; completed_at: string | null } & SessionMetrics)[] | null) ?? [];
-  const pre = all.find((r) => r.phase === 'pre');
-  const post = all.find((r) => r.phase === 'post');
+  // A participant can have several post sessions (resets/retakes).
+  // The anchor enrollment the user opened is authoritative for its own
+  // side; the counterpart is the most recently completed session of
+  // the opposite phase, so the comparison is deterministic and matches
+  // the session the admin actually clicked.
+  const all = (rows as Row[] | null) ?? [];
+  const latest = (phase: string): Row | undefined =>
+    all
+      .filter((r) => r.phase === phase)
+      .sort((a, b) =>
+        (b.completed_at ?? '').localeCompare(a.completed_at ?? ''),
+      )[0];
+
+  const pre = anchor.phase === 'pre' ? anchor : latest('pre');
+  const post = anchor.phase === 'post' ? anchor : latest('post');
   if (!pre || !post) return null;
 
   const { data: prof } = await sb
