@@ -972,6 +972,10 @@ export type OrgRow = {
   // Max phase the moderator has unlocked for this org's students
   // (1-3). Migration 0020.
   session_phase: number;
+  // Shared per-org signup path segment. Students self-register at
+  // mentalvelocitysystem.com/<signup_slug>. Globally unique
+  // (case-insensitive), nullable, editable. Migration 0024.
+  signup_slug: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -985,11 +989,12 @@ export type OrgRosterRow = {
   role: 'super_admin' | 'org_admin' | 'student';
   created_at: string;
   completed_count: number;
-  // Day 5b: per-enrollment take-URL tokens, paired with their phase + status.
+  // Per-enrollment phase + completion status. (Pre-0024 this also carried
+  // secret_token for emailed /take/<token> links; that flow was removed in
+  // favor of the shared signup slug.)
   enrollments: {
     id: string;
     phase: 'pre' | 'post' | 'practice';
-    secret_token: string;
     completed_at: string | null;
     assessment_code: string;
     assessment_name: string;
@@ -1005,6 +1010,7 @@ export type OrgInput = {
   deal_value_cents: number | null;
   notes: string | null;
   session_date: string | null;
+  signup_slug: string | null;
 };
 
 export async function listOrgs(): Promise<OrgListItem[]> {
@@ -1085,7 +1091,7 @@ export async function getOrgRoster(orgId: string): Promise<OrgRosterRow[]> {
   const { data: enrollments } = await client
     .from('enrollments')
     .select(
-      'id, student_id, phase, secret_token, completed_at, assessments(code, name)'
+      'id, student_id, phase, completed_at, assessments(code, name)'
     )
     .in('student_id', Array.from(ids));
   const completedById = new Map<string, number>();
@@ -1104,7 +1110,6 @@ export async function getOrgRoster(orgId: string): Promise<OrgRosterRow[]> {
     arr.push({
       id: e.id as string,
       phase: e.phase as 'pre' | 'post' | 'practice',
-      secret_token: e.secret_token as string,
       completed_at: (e.completed_at as string | null) ?? null,
       assessment_code: joined?.code ?? '',
       assessment_name: joined?.name ?? joined?.code ?? '',
