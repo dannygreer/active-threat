@@ -53,10 +53,6 @@ export default async function AdminPhase2Page({ searchParams }: PageProps) {
         activeRoute="/mvs/admin/phase-2"
       />
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        <h2 className="mvs-display text-3xl font-bold text-zinc-900">
-          {meta.shortLabel}: {meta.name}
-        </h2>
-
         <PhaseSubNav
           basePath="/mvs/admin/phase-2"
           active={view}
