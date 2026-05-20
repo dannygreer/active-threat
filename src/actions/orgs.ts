@@ -7,7 +7,7 @@ import {
   updateOrgRow,
   type OrgInput,
 } from '@/lib/db';
-import { decideInviteAction } from '@/lib/invites';
+import { normalizeSignupSlug } from '@/lib/signupSlug';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -32,6 +32,8 @@ function parseInput(formData: FormData): OrgInput {
   const rawSession = String(formData.get('session_date') ?? '').trim();
   // <input type="date"> emits YYYY-MM-DD already; empty string -> null.
   const sessionDate = rawSession === '' ? null : rawSession;
+  const slugResult = normalizeSignupSlug(String(formData.get('signup_slug') ?? ''));
+  if (!slugResult.ok) throw new Error(slugResult.error);
   return {
     name,
     type: (String(formData.get('type') ?? '').trim() || null),
@@ -41,13 +43,26 @@ function parseInput(formData: FormData): OrgInput {
     deal_value_cents: parseDealValue(formData.get('deal_value')),
     notes: (String(formData.get('notes') ?? '').trim() || null),
     session_date: sessionDate,
+    signup_slug: slugResult.slug,
   };
+}
+
+// The orgs_signup_slug_uniq index rejects a duplicate with a Postgres
+// "duplicate key" message. Translate it into operator-readable copy.
+function rethrowSlugConflict(err: unknown): never {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/orgs_signup_slug_uniq/i.test(msg) || /duplicate key/i.test(msg)) {
+    throw new Error(
+      'That signup slug is already used by another org. Pick a different one.',
+    );
+  }
+  throw err instanceof Error ? err : new Error(msg);
 }
 
 export async function createOrg(formData: FormData) {
   await requireSuperAdmin();
   const input = parseInput(formData);
-  const org = await insertOrg(input);
+  const org = await insertOrg(input).catch(rethrowSlugConflict);
   revalidatePath('/mvs/admin/orgs');
   redirect(`/mvs/admin/orgs/${org.id}`);
 }
@@ -55,7 +70,7 @@ export async function createOrg(formData: FormData) {
 export async function updateOrg(id: string, formData: FormData) {
   await requireSuperAdmin();
   const input = parseInput(formData);
-  await updateOrgRow(id, input);
+  await updateOrgRow(id, input).catch(rethrowSlugConflict);
   revalidatePath('/mvs/admin/orgs');
   revalidatePath(`/mvs/admin/orgs/${id}`);
 }
@@ -184,33 +199,7 @@ export async function inviteOrgAdmin(
   };
 }
 
-// ============================================================
-// BULK INVITE STUDENTS
-// ============================================================
-
-export type InviteRowResult = {
-  line: number;
-  raw: string;
-  email?: string;
-  status:
-    | 'invited'
-    | 'already_exists_added_to_org'
-    | 'already_in_this_org'
-    | 'conflict_other_org'
-    | 'parse_error'
-    | 'error';
-  message?: string;
-};
-
-export type InviteResult = {
-  rows: InviteRowResult[];
-  invitedCount: number;
-  conflictCount: number;
-  errorCount: number;
-};
-
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
-const MAX_ROSTER_ROWS = 200;
 
 function getAppUrl(): string {
   if (process.env.APP_URL) return process.env.APP_URL;
@@ -245,208 +234,6 @@ async function findUserByEmail(
     page++;
   }
   return null;
-}
-
-export async function inviteStudents(
-  _prev: InviteResult | null,
-  formData: FormData
-): Promise<InviteResult> {
-  await requireSuperAdmin();
-
-  const orgId = String(formData.get('orgId') ?? '').trim();
-  const raw = String(formData.get('roster') ?? '');
-  if (!orgId) {
-    return {
-      rows: [],
-      invitedCount: 0,
-      conflictCount: 0,
-      errorCount: 1,
-    };
-  }
-
-  const client = adminClient();
-  const lines = raw.replace(/\r\n/g, '\n').split('\n');
-  const rows: InviteRowResult[] = [];
-
-  // Vercel functions cap at 300s and the per-row work is sequential
-  // (auth.admin.inviteUserByEmail + profile upsert ~ a few hundred ms each,
-  // worse on conflict because we paginate listUsers). 200 rows is a safe
-  // ceiling for v1 cohort scale; raise once we have a real index for
-  // email -> user_id lookups.
-  const nonBlank = lines.filter((l) => l.trim() !== '').length;
-  if (nonBlank > MAX_ROSTER_ROWS) {
-    return {
-      rows: [
-        {
-          line: 0,
-          raw: '',
-          status: 'error',
-          message: `Too many rows (${nonBlank}). Max ${MAX_ROSTER_ROWS} per submission. Split into batches.`,
-        },
-      ],
-      invitedCount: 0,
-      conflictCount: 0,
-      errorCount: 1,
-    };
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const lineNo = i + 1;
-    const line = lines[i].trim();
-    if (line === '') continue;
-
-    const parts = line.split(',').map((s) => s.trim());
-    if (parts.length !== 3) {
-      rows.push({
-        line: lineNo,
-        raw: line,
-        status: 'parse_error',
-        message: 'Expected 3 comma-separated fields: First,Last,email',
-      });
-      continue;
-    }
-    const [first, last, email] = parts;
-    if (!first || !last || !email) {
-      rows.push({
-        line: lineNo,
-        raw: line,
-        status: 'parse_error',
-        message: 'First, Last, and email are all required',
-      });
-      continue;
-    }
-    if (!EMAIL_RE.test(email)) {
-      rows.push({
-        line: lineNo,
-        raw: line,
-        email,
-        status: 'parse_error',
-        message: 'Invalid email format',
-      });
-      continue;
-    }
-
-    const fullName = `${first} ${last}`;
-    const redirectTo = `${getAppUrl()}/auth/callback?next=/app`;
-
-    let userId: string | null = null;
-    let invited = false;
-
-    const { data: inviteData, error: inviteErr } =
-      await client.auth.admin.inviteUserByEmail(email, {
-        redirectTo,
-        data: { full_name: fullName },
-      });
-
-    if (inviteErr) {
-      // Already-registered users return "User already registered" or 422.
-      const msg = inviteErr.message ?? '';
-      if (
-        /already registered/i.test(msg) ||
-        /already exists/i.test(msg) ||
-        inviteErr.status === 422
-      ) {
-        userId = await findUserByEmail(client, email);
-        if (!userId) {
-          rows.push({
-            line: lineNo,
-            raw: line,
-            email,
-            status: 'error',
-            message: `Existing user lookup failed: ${msg}`,
-          });
-          continue;
-        }
-      } else {
-        rows.push({
-          line: lineNo,
-          raw: line,
-          email,
-          status: 'error',
-          message: msg,
-        });
-        continue;
-      }
-    } else {
-      userId = inviteData?.user?.id ?? null;
-      invited = true;
-      if (!userId) {
-        rows.push({
-          line: lineNo,
-          raw: line,
-          email,
-          status: 'error',
-          message: 'Invite returned no user id',
-        });
-        continue;
-      }
-    }
-
-    // Trigger from 0002 should have created the profile row. Defensive upsert
-    // just in case the trigger lagged or this is an existing user.
-    const { data: existing } = await client
-      .from('profiles')
-      .select('org_id, full_name')
-      .eq('id', userId)
-      .single();
-
-    const decision = decideInviteAction(
-      existing ? { org_id: existing.org_id } : null,
-      orgId
-    );
-
-    if (decision.kind === 'conflict_other_org') {
-      rows.push({
-        line: lineNo,
-        raw: line,
-        email,
-        status: 'conflict_other_org',
-        message: `User already belongs to another org (${decision.currentOrgId})`,
-      });
-      continue;
-    }
-
-    const updates: { org_id: string; full_name?: string } = { org_id: orgId };
-    if (!existing?.full_name) updates.full_name = fullName;
-
-    const { error: upErr } = await client
-      .from('profiles')
-      .upsert({ id: userId, role: 'student', ...updates }, { onConflict: 'id' });
-
-    if (upErr) {
-      rows.push({
-        line: lineNo,
-        raw: line,
-        email,
-        status: 'error',
-        message: `Profile update failed: ${upErr.message}`,
-      });
-      continue;
-    }
-
-    rows.push({
-      line: lineNo,
-      raw: line,
-      email,
-      status: invited
-        ? 'invited'
-        : decision.kind === 'already_in_this_org'
-        ? 'already_in_this_org'
-        : 'already_exists_added_to_org',
-    });
-  }
-
-  const invitedCount = rows.filter((r) => r.status === 'invited').length;
-  const conflictCount = rows.filter(
-    (r) => r.status === 'conflict_other_org'
-  ).length;
-  const errorCount = rows.filter(
-    (r) => r.status === 'error' || r.status === 'parse_error'
-  ).length;
-
-  revalidatePath(`/mvs/admin/orgs/${orgId}`);
-
-  return { rows, invitedCount, conflictCount, errorCount };
 }
 
 // ============================================================

@@ -6,13 +6,12 @@ import { getOrg, getOrgRoster } from '@/lib/db';
 import { updateOrg } from '@/actions/orgs';
 import OrgForm from '@/components/admin/OrgForm';
 import InviteOrgAdminForm from '@/components/admin/InviteOrgAdminForm';
-import SendPreInvitesPanel from '@/components/admin/SendPreInvitesPanel';
 import RosterRowActions from '@/components/admin/RosterRowActions';
 import RosterRowExpandable from '@/components/admin/RosterRowExpandable';
 import DangerZone from '@/components/admin/DangerZone';
 import OrgOutcomes from '@/components/admin/OrgOutcomes';
-import AddStudentInline from '@/components/admin/AddStudentInline';
 import SessionDayCard from '@/components/admin/SessionDayCard';
+import CopyableText from '@/components/admin/CopyableText';
 import { loadOrgOutcomes } from '@/lib/dashboard';
 import { formatAdminDateTime, formatAdminDate } from '@/lib/adminFormat';
 
@@ -56,13 +55,9 @@ export default async function OrgDetailPage({
   const baseUrl = await getBaseUrl();
   const updateAction = updateOrg.bind(null, id);
   const totalRosterCount = fullRoster.length;
-
-  // Count of students with at least one incomplete 'pre' enrollment.
-  // The action re-checks invited_email_sent_at at send time; this count
-  // is just for the panel header.
-  const pendingStudentCount = roster.filter((m) =>
-    m.enrollments.some((e) => e.phase === 'pre' && !e.completed_at)
-  ).length;
+  const signupUrl = org.signup_slug
+    ? `${baseUrl}/${org.signup_slug}`
+    : null;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -82,12 +77,6 @@ export default async function OrgDetailPage({
               Updated {formatAdminDateTime(org.updated_at)}
             </p>
           </div>
-          <Link
-            href={`/mvs/admin/orgs/${id}/invite`}
-            className="mvs-mono px-4 py-2 bg-zinc-900 text-white text-[11px] uppercase tracking-[0.18em] hover:bg-zinc-800 transition-colors"
-          >
-            + Invite students
-          </Link>
         </div>
       </header>
 
@@ -107,12 +96,23 @@ export default async function OrgDetailPage({
 
         <section className="bg-white border border-zinc-200 rounded-xl p-6">
           <h2 className="mvs-mono text-xs font-semibold text-zinc-900 uppercase tracking-[0.22em] mb-3">
-            Pre-assessment invites
+            Student signup link
           </h2>
-          <SendPreInvitesPanel
-            orgId={id}
-            pendingStudentCount={pendingStudentCount}
-          />
+          {signupUrl ? (
+            <>
+              <p className="text-sm text-zinc-600 mb-3">
+                Share this on test day. Students create an email + password
+                here and land straight in their dashboard.
+              </p>
+              <CopyableText value={signupUrl} />
+            </>
+          ) : (
+            <p className="text-sm text-zinc-500">
+              No signup slug set. Add one in{' '}
+              <strong>Details → Signup link slug</strong> above to enable
+              student self-registration.
+            </p>
+          )}
         </section>
 
         <section className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
@@ -192,11 +192,11 @@ export default async function OrgDetailPage({
                 {roster.length} students
               </span>
             </div>
-            <AddStudentInline orgId={id} />
           </div>
           {roster.length === 0 ? (
             <p className="px-6 py-12 text-center text-zinc-500 text-sm">
-              No students yet. Click <strong>+ Invite students</strong> to add them.
+              No students yet. They appear here once they self-register via
+              the signup link above.
             </p>
           ) : (
             <table className="w-full text-sm">
@@ -221,7 +221,6 @@ export default async function OrgDetailPage({
                     completedCount={m.completed_count}
                     createdAt={m.created_at}
                     enrollments={m.enrollments}
-                    baseUrl={baseUrl}
                     columnCount={7}
                     actions={
                       <RosterRowActions

@@ -2,9 +2,13 @@
 
 // Two-row roster element: visible row (name/email/role/done/joined/actions
 // + chevron) plus an expanded panel that lists each enrollment with its
-// full assessment name, phase badge, copy-link button, and reset link.
+// full assessment name, phase badge, report links, and reset link.
 // Renders as a Fragment of two <tr> so the expanded panel sits in the
 // same table flow with a colSpan.
+//
+// (Pre-0024 this also surfaced a per-enrollment /take/<token> copy link.
+// Students now self-register via the org signup slug, so there is no
+// per-student URL to hand out.)
 import { useState, useTransition } from 'react';
 import { resetEnrollment } from '@/actions/orgs';
 import { formatAdminDate } from '@/lib/adminFormat';
@@ -14,7 +18,6 @@ interface Enrollment {
   phase: 'pre' | 'post' | 'practice';
   assessment_code: string;
   assessment_name: string;
-  secret_token: string;
   completed_at: string | null;
 }
 
@@ -25,7 +28,6 @@ interface Props {
   completedCount: number;
   createdAt: string;
   enrollments: Enrollment[];
-  baseUrl: string;
   actions: React.ReactNode;
   // Number of <td> the expanded panel must span — equals the visible
   // column count (chevron + 6 = 7 here).
@@ -39,7 +41,6 @@ export default function RosterRowExpandable({
   completedCount,
   createdAt,
   enrollments,
-  baseUrl,
   actions,
   columnCount,
 }: Props) {
@@ -76,11 +77,7 @@ export default function RosterRowExpandable({
             ) : (
               <ul className="divide-y divide-zinc-200 border border-zinc-200 rounded-lg bg-white">
                 {enrollments.map((e) => (
-                  <EnrollmentLine
-                    key={e.id}
-                    enrollment={e}
-                    takeUrl={`${baseUrl}/take/${e.secret_token}`}
-                  />
+                  <EnrollmentLine key={e.id} enrollment={e} />
                 ))}
               </ul>
             )}
@@ -91,30 +88,17 @@ export default function RosterRowExpandable({
   );
 }
 
-function EnrollmentLine({
-  enrollment,
-  takeUrl,
-}: {
-  enrollment: Enrollment;
-  takeUrl: string;
-}) {
-  const [copied, setCopied] = useState(false);
+function EnrollmentLine({ enrollment }: { enrollment: Enrollment }) {
   const [resetting, setResetting] = useState(false);
   const [, startTransition] = useTransition();
 
   const phaseLabel = enrollment.phase.toUpperCase();
   const completed = !!enrollment.completed_at;
 
-  function copy() {
-    navigator.clipboard.writeText(takeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
-  }
-
   function reset() {
     if (
       !window.confirm(
-        `Reset ${enrollment.assessment_name} (${enrollment.phase}) for this student? Their previous responses stay in the data; the link becomes usable again.`,
+        `Reset ${enrollment.assessment_name} (${enrollment.phase}) for this student? Their previous responses stay in the data; they can take it again.`,
       )
     ) {
       return;
@@ -149,9 +133,13 @@ function EnrollmentLine({
         <span className="text-zinc-800 truncate" title={enrollment.assessment_name}>
           {enrollment.assessment_name}
         </span>
-        {completed && (
+        {completed ? (
           <span className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-400">
             done {formatAdminDate(enrollment.completed_at)}
+          </span>
+        ) : (
+          <span className="mvs-mono text-[10px] uppercase tracking-widest text-zinc-400">
+            not started
           </span>
         )}
       </div>
@@ -179,20 +167,6 @@ function EnrollmentLine({
               Pre/Post ↗
             </a>
           )}
-        {!completed && (
-          <button
-            type="button"
-            onClick={copy}
-            className={`mvs-mono text-[10px] uppercase tracking-widest px-2 py-1 border rounded transition-colors ${
-              copied
-                ? 'border-emerald-500 text-emerald-700 bg-emerald-50'
-                : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-            }`}
-            title={takeUrl}
-          >
-            {copied ? 'Copied ✓' : 'Copy link'}
-          </button>
-        )}
         {completed && (
           <button
             type="button"

@@ -5,6 +5,7 @@ import {
   ORG_STATUS_OPTIONS,
   ORG_STATUS_LABELS,
 } from '@/lib/orgTypes';
+import SignupSlugField from '@/components/admin/SignupSlugField';
 
 interface OrgFormProps {
   action: (formData: FormData) => void | Promise<void>;
@@ -106,6 +107,7 @@ export default function OrgForm({ action, initial, submitLabel }: OrgFormProps) 
             className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
         </div>
+        <SignupSlugField initial={initial?.signup_slug ?? ''} />
       </div>
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">Notes</label>
